@@ -1,0 +1,45 @@
+#version 450 core
+#extension GL_ARB_separate_shader_objects   : enable
+#extension GL_ARB_shading_language_420pack  : enable
+#extension GL_GOOGLE_include_directive      : require
+#extension GL_AMD_shader_trinary_minmax     : enable
+
+#define GROUP_SIZE_X 64
+#define GROUP_SIZE_Y 1
+layout(local_size_x = GROUP_SIZE_X,
+       local_size_y = GROUP_SIZE_Y) in;
+
+layout(set=0, binding=0, std140) uniform readonly UBO {
+    float value1;   // [memoryOffset 0]
+    float value2;   // [memoryOffset 4]
+    vec2 _pad;      // [memoryOffset 8]
+                    // size 16
+} ubo;
+
+layout(set=0, binding=1, std430) readonly buffer I0 {
+	float dataIn[];
+};
+
+layout(set=0, binding=2, std430) writeonly buffer O0 {
+	float dataOut[];
+};
+
+// Specialisation constants
+layout(constant_id = 0) const float ADD1 = 0;
+layout(constant_id = 1) const float ADD2 = 0.0f;
+
+// Push constants (max 128 bytes)
+layout(std140, push_constant) uniform PC {
+	float value1;
+	float value2;
+} pc;
+
+ivec2 g_pos  = ivec2(gl_GlobalInvocationID.xy);
+ivec2 l_pos  = ivec2(gl_LocalInvocationID.xy);
+uint g_index = gl_GlobalInvocationID.x;
+               //gl_GlobalInvocationID.y*SIZE.x;
+uint l_index = gl_LocalInvocationIndex;
+
+void main() {
+    dataOut[g_index] = dataIn[g_index] + pc.value1 + pc.value2 + ADD1 + ADD2;
+}

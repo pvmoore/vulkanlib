@@ -1,0 +1,11 @@
+
+.logs/
+.out/
+out/
+bin/
+.idea/
+*.iml
+
+*.jar
+*.lnk
+glslangValidator.exe
