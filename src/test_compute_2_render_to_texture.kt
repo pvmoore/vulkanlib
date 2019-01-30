@@ -1,5 +1,5 @@
 
-fun main(args: Array<String>) {
+fun main() {
     println("Testing Vulkan Compute Render to Texture...")
 
     test()

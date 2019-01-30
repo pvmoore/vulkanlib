@@ -20,6 +20,8 @@ abstract class VulkanClient(
     val prefNumTransferQueues:Int    = 1,
     val prefNumSwapChainBuffers:Int  = 2)
 {
+    val headless = prefNumGraphicsQueues==0
+
     abstract fun destroy()
     /**
      * Set features required by your application.
@@ -41,5 +43,7 @@ abstract class VulkanClient(
     /**
      * Render a new frame using the provided resource.
      */
-    abstract fun render(frame: FrameInfo, res: PerFrameResource)
+    open fun render(frame: FrameInfo, res: PerFrameResource) {
+
+    }
 }

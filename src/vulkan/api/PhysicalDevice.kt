@@ -129,7 +129,8 @@ fun selectQueueFamilies(queueFamilies: QueueFamilies,
 
         queueFamilyProps.forEachIndexed { i, family->
             if(family.queueCount()>0) {
-                if(isGraphics(family.queueFlags()) and canPresent(i)) {
+
+                if(client.prefNumGraphicsQueues>0 && isGraphics(family.queueFlags()) and canPresent(i)) {
                     if(queueFamilies.graphics==-1 || !isCompute(family.queueFlags())) {
                         queueFamilies.graphics = i
                         queueFamilies.numGraphicsQueues = Math.min(family.queueCount(), client.prefNumGraphicsQueues)
@@ -152,7 +153,7 @@ fun selectQueueFamilies(queueFamilies: QueueFamilies,
                         queueFamilies.numComputeQueues = Math.min(family.queueCount(), client.prefNumComputeQueues)
                     }
                 }
-                if(isTransfer(family.queueFlags())) {
+                if(client.prefNumTransferQueues>0 && isTransfer(family.queueFlags())) {
 
                     if(queueFamilies.transfer==-1 ||
                       (!isGraphics(family.queueFlags()) && !isCompute(family.queueFlags())))

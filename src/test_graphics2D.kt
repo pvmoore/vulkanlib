@@ -22,7 +22,7 @@ import vulkan.texture.Textures
  * Vulkan graphics example.
  */
 
-fun main(args: Array<String>) {
+fun main() {
 
     log.info("Testing Vulkan Graphics...")
 

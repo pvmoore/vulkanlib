@@ -8,7 +8,7 @@ import org.lwjgl.BufferUtils
 import org.lwjgl.Version
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.glfw.GLFWKeyCallback
-import org.lwjgl.glfw.GLFWVulkan
+import org.lwjgl.glfw.GLFWVulkan.glfwCreateWindowSurface
 import org.lwjgl.glfw.GLFWVulkan.glfwVulkanSupported
 import org.lwjgl.system.Callback
 import org.lwjgl.system.Configuration
@@ -144,41 +144,49 @@ class VulkanApplication(val client: VulkanClient) {
         physicalDeviceProperties = physicalDevice.getProperties()
         physicalDeviceProperties.dump()
 
-        window = createWindow()
-        log.info("Window size ... ${windowSize.string()}")
+        if(!client.headless) {
 
-        surface = createSurface()
+            window = createWindow()
+            log.info("Window size ... ${windowSize.string()}")
 
-        selectSurfaceFormat(physicalDevice, surface, surfaceFormat)
-        selectQueueFamilies(queueFamilies, physicalDevice, client, surface)
+            surface = createSurface()
 
-        if(!canPresent(physicalDevice, surface, queueFamilies.graphics)) {
-            throw Error("Can't present on this surface")
+            selectSurfaceFormat(physicalDevice, surface, surfaceFormat)
         }
 
-        client.enableFeatures(features)
+        selectQueueFamilies(queueFamilies, physicalDevice, client, surface)
 
-        device         = createLogicalDevice(physicalDevice, queueFamilies, deviceExtensions, features)
+        client.enableFeatures(features)
+        device = createLogicalDevice(physicalDevice, queueFamilies, deviceExtensions, features)
+
         graphicsQueues = device.getQueues(queueFamilies.graphics, queueFamilies.numGraphicsQueues)
         transferQueues = device.getQueues(queueFamilies.transfer, queueFamilies.numTransferQueues)
         computeQueues  = device.getQueues(queueFamilies.compute, queueFamilies.numComputeQueues)
 
+        if(!client.headless) {
+            if(!canPresent(physicalDevice, surface, queueFamilies.graphics)) {
+                throw Error("Can't present on this surface")
+            }
+
+            renderPass = client.createRenderPass(device, surfaceFormat.colorFormat)
+
+            swapChain = SwapChain(this, surfaceFormat)
+
+            graphicsCP = device.createCommandPools(
+                queueFamilies.graphics,
+                VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT or VK_COMMAND_POOL_CREATE_TRANSIENT_BIT
+            )
+            log.info("Created graphics command pool using queue family ${queueFamilies.graphics}")
+
+            frameResources = createPerFrameResources()
+        }
+
+        if(queueFamilies.numTransferQueues>0) {
+            transferCP = device.createCommandPools(queueFamilies.transfer, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT)
+            log.info("Created transfer command pool using queue family ${queueFamilies.transfer}")
+        }
+
         shaders.init(device)
-
-        renderPass = client.createRenderPass(device, surfaceFormat.colorFormat)
-
-        swapChain = SwapChain(this, surfaceFormat)
-
-        graphicsCP = device.createCommandPools(
-            queueFamilies.graphics,
-            VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT or VK_COMMAND_POOL_CREATE_TRANSIENT_BIT
-        )
-        log.info("Created graphics command pool using queue family ${queueFamilies.graphics}")
-        transferCP = device.createCommandPools(queueFamilies.transfer, VK_COMMAND_POOL_CREATE_TRANSIENT_BIT)
-        log.info("Created transfer command pool using queue family ${queueFamilies.transfer}")
-
-        frameResources = createPerFrameResources()
-
         fonts.init(this)
 
         log.info("Vulkan ready")
@@ -189,17 +197,19 @@ class VulkanApplication(val client: VulkanClient) {
         device?.let {
             it.waitForIdle()
 
-            frameResources?.forEach { pfr ->
-                pfr.imageAvailable?.destroy()
-                pfr.renderFinished?.destroy()
-                pfr.fence?.destroy()
-            }
-
             physicalDeviceMemoryProperties?.free()
             physicalDeviceProperties?.free()
-            swapChain?.destroy()
 
-            graphicsCP?.destroy()
+            if(!client.headless) {
+                frameResources?.forEach { pfr ->
+                    pfr.imageAvailable?.destroy()
+                    pfr.renderFinished?.destroy()
+                    pfr.fence?.destroy()
+                }
+                swapChain?.destroy()
+                graphicsCP?.destroy()
+            }
+
             transferCP?.destroy()
 
             shaders.destroy()
@@ -338,7 +348,7 @@ class VulkanApplication(val client: VulkanClient) {
     private fun createSurface():VkSurfaceKHR {
         MemoryStack.stackPush().use { stack ->
             val pSurface = stack.mallocLong(1)
-            GLFWVulkan.glfwCreateWindowSurface(instance, window, null, pSurface).check()
+            glfwCreateWindowSurface(instance, window, null, pSurface).check()
             return pSurface.get(0)
         }
     }

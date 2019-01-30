@@ -62,8 +62,6 @@ class GraphicsPipeline(private val context: RenderContext)
 
     }
     fun destroy() {
-        log.info("Destroying GraphicsPipeline")
-
         vertexInputState.free()
         inputAssemblyState.free()
         tessellationState.free()

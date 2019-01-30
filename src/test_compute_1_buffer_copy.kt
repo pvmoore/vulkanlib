@@ -25,7 +25,7 @@ import java.nio.ByteOrder
  * Shows use of push constants and spec constants.
  */
 
-fun main(args: Array<String>) {
+fun main() {
     println("Testing Vulkan Compute...")
 
     test()
