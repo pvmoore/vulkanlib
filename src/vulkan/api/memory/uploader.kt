@@ -1,14 +1,15 @@
 package vulkan.api.memory
 
-import org.lwjgl.vulkan.VkQueue
-import vulkan.VulkanApplication
-import vulkan.api.VkCommandPool
+import org.lwjgl.vulkan.VK10.VK_COMMAND_POOL_CREATE_TRANSIENT_BIT
 import vulkan.api.beginOneTimeSubmit
 import vulkan.api.buffer.BufferAlloc
 import vulkan.api.buffer.VkBuffer
 import vulkan.api.buffer.copyBuffer
+import vulkan.api.createCommandPools
 import vulkan.api.end
 import vulkan.api.submitAndWait
+import vulkan.app.VulkanApplication
+import vulkan.common.Queues
 import vulkan.common.Transferable
 import vulkan.common.log
 import java.nio.ByteBuffer
@@ -16,13 +17,19 @@ import java.nio.ByteOrder
 import kotlin.test.assertEquals
 
 fun VulkanApplication.createStagingTransfer(stagingBuffer: VkBuffer):StagingTransfer {
-    return StagingTransfer(this.transferCP, this.transferQueues[0], stagingBuffer)
+    return StagingTransfer(this, stagingBuffer)
 }
 
-class StagingTransfer(private val transferCP: VkCommandPool,
-                      private val transferQueue: VkQueue,
+class StagingTransfer(vk: VulkanApplication,
                       private val stagingBuffer: VkBuffer)
 {
+    private val queue       = vk.queues.get(Queues.TRANSFER)
+    private val commandPool = vk.device.createCommandPools(vk.queues.getFamily(Queues.TRANSFER),
+                                                           VK_COMMAND_POOL_CREATE_TRANSIENT_BIT)
+
+    fun destroy() {
+        commandPool.destroy()
+    }
     fun upload(dest: BufferAlloc, src: Transferable):StagingTransfer {
         val bytes = ByteBuffer.allocateDirect(src.size()).order(ByteOrder.nativeOrder())
         src.writeTo(bytes)
@@ -94,10 +101,10 @@ class StagingTransfer(private val transferCP: VkCommandPool,
     }
     private fun copy(src: VkBuffer, srcOffset:Int, dest: VkBuffer, destOffset:Int, size:Int) {
 
-        val b = transferCP.alloc()
-            .beginOneTimeSubmit()
-            .copyBuffer(src, srcOffset, dest, destOffset, size)
-            /*  .pipelineBarrier(
+        commandPool.alloc().let { b->
+            b.beginOneTimeSubmit()
+            b.copyBuffer(src, srcOffset, dest, destOffset, size)
+                /*  .pipelineBarrier(
                 PIPELINE_STAGE_TRANSFER,
                 PIPELINE_STAGE_TOP_OF_PIPE,
                 0,      // dependencyFlags
@@ -113,14 +120,15 @@ class StagingTransfer(private val transferCP: VkCommandPool,
                 ],     // buffer memory barriers
                 null    // image memory barriers
             );*/
-            .end()
+            b.end()
 
+            val start = System.nanoTime()
+            queue.submitAndWait(b)
+            commandPool.free(b)
 
-        val start = System.nanoTime()
-        this.transferQueue.submitAndWait(b)
-        this.transferCP.free(b)
-        val end = System.nanoTime()
+            val end = System.nanoTime()
 
-        log.debug("Blocking copy took ${(end-start)/1_000_000.0} ms")
+            log.debug("Blocking copy took ${(end-start)/1_000_000.0} ms")
+        }
     }
 }

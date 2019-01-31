@@ -6,7 +6,7 @@ import org.lwjgl.vulkan.*
 import org.lwjgl.vulkan.VK10.*
 import vulkan.common.MEGABYTE
 import vulkan.common.MemoryType
-import vulkan.VulkanApplication
+import vulkan.app.VulkanApplication
 import vulkan.misc.VkBufferUsageFlags
 import vulkan.misc.VkImageUsageFlags
 import vulkan.misc.VkMemoryPropertyFlags
@@ -43,10 +43,10 @@ fun VulkanApplication.selectSharedMemoryType(size:Int): MemoryType? {
     return device.selectMemoryType(physicalDeviceMemoryProperties, desiredMemFlags, undesiredMemFlags, size, bufferUsage, imageUsage)
 }
 fun VulkanApplication.selectMemoryType(size:Int,
-                                       desiredMemFlags:VkMemoryPropertyFlags,
-                                       undesiredMemFlags:VkMemoryPropertyFlags,
-                                       bufferUsage:VkBufferUsageFlags = 0,
-                                       imageUsage:VkImageUsageFlags = 0)
+                                                  desiredMemFlags:VkMemoryPropertyFlags,
+                                                  undesiredMemFlags:VkMemoryPropertyFlags,
+                                                  bufferUsage:VkBufferUsageFlags = 0,
+                                                  imageUsage:VkImageUsageFlags = 0)
     : MemoryType?
 {
     return device.selectMemoryType(physicalDeviceMemoryProperties, desiredMemFlags, undesiredMemFlags, size, bufferUsage, imageUsage)
@@ -58,10 +58,10 @@ fun VulkanApplication.selectMemoryType(size:Int,
  *                                          Shared heap (of 256MB) is 64MB
  */
 fun VulkanApplication.allocateMemory(size:Int,
-                                     desiredMemFlags:VkMemoryPropertyFlags,
-                                     undesiredMemFlags:VkMemoryPropertyFlags,
-                                     bufferUsage:VkBufferUsageFlags = 0,
-                                     imageUsage:VkImageUsageFlags = 0)
+                                                desiredMemFlags:VkMemoryPropertyFlags,
+                                                undesiredMemFlags:VkMemoryPropertyFlags,
+                                                bufferUsage:VkBufferUsageFlags = 0,
+                                                imageUsage:VkImageUsageFlags = 0)
     : VkDeviceMemory?
 {
     val type =

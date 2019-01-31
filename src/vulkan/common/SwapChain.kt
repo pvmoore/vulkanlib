@@ -9,17 +9,22 @@ import org.lwjgl.vulkan.*
 import org.lwjgl.vulkan.KHRSurface.*
 import org.lwjgl.vulkan.KHRSwapchain.*
 import org.lwjgl.vulkan.VK10.*
-import vulkan.VulkanApplication
 import vulkan.api.*
 import vulkan.api.image.VkImage
 import vulkan.api.image.VkImageView
+import vulkan.app.VulkanApplication
 import vulkan.misc.*
 import java.nio.IntBuffer
 
-class SwapChain(private val app: VulkanApplication, surfaceFormat: SurfaceFormat) {
-    private val surface:Long                    = app.surface
-    private val physicalDevice:VkPhysicalDevice = app.physicalDevice
-    private val device: VkDevice                = app.device
+class SwapChain(private val vk: VulkanApplication,
+                private val width:Int,
+                private val height:Int,
+                private val surface:Long,
+                surfaceFormat: SurfaceFormat,
+                renderPass:VkRenderPass)
+{
+    private val physicalDevice:VkPhysicalDevice = vk.physicalDevice
+    private val device: VkDevice                = vk.device
     private val colorFormat                     = surfaceFormat.colorFormat
     private val colorSpace                      = surfaceFormat.colorSpace
     private val nextImage:IntBuffer             = memAllocInt(1)
@@ -29,8 +34,7 @@ class SwapChain(private val app: VulkanApplication, surfaceFormat: SurfaceFormat
     val images       = ArrayList<VkImage>()
     val views        = ArrayList<VkImageView>()
     val frameBuffers = ArrayList<VkFrameBuffer>()
-
-    var numImages:Int = 0
+    var numImages    = 0
 
     init{
         log.info("Initialising SwapChain ...")
@@ -38,7 +42,7 @@ class SwapChain(private val app: VulkanApplication, surfaceFormat: SurfaceFormat
         handle = createSwapChain()
         getSwapChainImages()
         createImageViews()
-        createFrameBuffers(app.renderPass)
+        createFrameBuffers(renderPass)
     }
     fun destroy() {
         log.info("Destroying SwapChain")
@@ -97,7 +101,7 @@ class SwapChain(private val app: VulkanApplication, surfaceFormat: SurfaceFormat
         // FIFO is always available
         val mode:Int
 
-        mode = if(app.client.enableVsync) {
+        mode = if(vk.client.enableVsync) {
             when {
                 presentModes.contains(VK_PRESENT_MODE_FIFO_RELAXED_KHR) -> VK_PRESENT_MODE_FIFO_RELAXED_KHR
                 else -> VK_PRESENT_MODE_FIFO_KHR
@@ -182,8 +186,8 @@ class SwapChain(private val app: VulkanApplication, surfaceFormat: SurfaceFormat
             val caps = getCapabilities(stack, physicalDevice, surface)
 
             val extentValid = caps.currentExtent().width()!=-1 && caps.currentExtent().height()!=-1
-            val width  = if(extentValid) caps.currentExtent().width() else app.requestedWindowSize.x
-            val height = if(extentValid) caps.currentExtent().height() else app.requestedWindowSize.y
+            val width  = if(extentValid) caps.currentExtent().width() else width
+            val height = if(extentValid) caps.currentExtent().height() else height
             log.info("\tSwapChain images size $width x $height")
 
             this.extent.apply {
@@ -191,7 +195,7 @@ class SwapChain(private val app: VulkanApplication, surfaceFormat: SurfaceFormat
                 y = height
             }
 
-            numImages = app.client.prefNumSwapChainBuffers.clamp(caps.minImageCount(), caps.maxImageCount())
+            numImages = vk.client.prefNumSwapChainBuffers.clamp(caps.minImageCount(), caps.maxImageCount())
             log.info("\tCreating $numImages images")
 
             val preTransform = when {
@@ -207,7 +211,7 @@ class SwapChain(private val app: VulkanApplication, surfaceFormat: SurfaceFormat
                 .imageFormat(colorFormat)
                 .imageColorSpace(colorSpace)
                 .imageArrayLayers(1)
-                .imageUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT or app.client.swapChainUsage)
+                .imageUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT or vk.client.swapChainUsage)
                 .imageSharingMode(VK_SHARING_MODE_EXCLUSIVE)
                 .pQueueFamilyIndices(null)
                 .preTransform(preTransform)

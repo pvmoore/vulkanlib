@@ -4,8 +4,6 @@ import org.apache.log4j.Logger
 import org.lwjgl.vulkan.VK10.*
 import org.lwjgl.vulkan.VkBufferImageCopy
 import org.lwjgl.vulkan.VkDevice
-import org.lwjgl.vulkan.VkQueue
-import vulkan.VulkanApplication
 import vulkan.api.*
 import vulkan.api.buffer.BufferAlloc
 import vulkan.api.buffer.VkBuffer
@@ -15,8 +13,10 @@ import vulkan.api.memory.VkDeviceMemory
 import vulkan.api.memory.allocImage
 import vulkan.api.memory.allocStagingSrcBuffer
 import vulkan.api.memory.allocateMemory
+import vulkan.app.VulkanApplication
 import vulkan.common.KILOBYTE
 import vulkan.common.MEGABYTE
+import vulkan.common.Queues
 import vulkan.misc.VkFormat
 import vulkan.misc.megabytes
 import vulkan.misc.orThrow
@@ -25,9 +25,8 @@ import vulkan.misc.translateVkFormat
 class Textures(val name:String = "") {
     private val logger: Logger = Logger.getLogger("Textures")
 
-    private lateinit var vk:VulkanApplication
-    private lateinit var transferCP:VkCommandPool
-    private lateinit var transferQueue:VkQueue
+    private lateinit var vk: VulkanApplication
+    private lateinit var commandPool:VkCommandPool
     private lateinit var device: VkDevice
     private lateinit var deviceMemory: VkDeviceMemory
     private lateinit var stagingMemory: VkDeviceMemory
@@ -36,11 +35,11 @@ class Textures(val name:String = "") {
     private val loader = ImageLoader
     private val map    = HashMap<String, Texture>()
 
-    fun init(vk:VulkanApplication, size:Int) {
+    fun init(vk: VulkanApplication, size:Int) {
         this.vk             = vk
         this.device         = vk.device
-        this.transferCP     = vk.transferCP
-        this.transferQueue  = vk.transferQueues.first()
+        this.commandPool    = device.createCommandPools(vk.queues.getFamily(Queues.TRANSFER),
+                                                        VK_COMMAND_POOL_CREATE_TRANSIENT_BIT)
         allocateMemory(size)
     }
     fun destroy() {
@@ -51,6 +50,7 @@ class Textures(val name:String = "") {
         stagingBuffer.destroy()
         stagingMemory.free()
         deviceMemory.free()
+        commandPool.destroy()
     }
 
     fun get(name:String, format:VkFormat = 0) : Texture {
@@ -141,27 +141,12 @@ class Textures(val name:String = "") {
         }
     }
     private fun copy(srcImage: BufferAlloc, destImage: VkImage) {
-        val cmd    = transferCP.alloc()
-        val aspect = VK_IMAGE_ASPECT_COLOR_BIT
 
         // Aspect can be one of:
         // VK_IMAGE_ASPECT_COLOR_BIT
         // VK_IMAGE_ASPECT_DEPTH_BIT
         // VK_IMAGE_ASPECT_STENCIL_BIT
-
-        cmd.beginOneTimeSubmit()
-
-        /**
-         * Change dest image layout:
-         * from VK_IMAGE_LAYOUT_UNDEFINED
-         * to   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
-         */
-        cmd.setImageLayout(
-            destImage,
-            aspect,
-            VK_IMAGE_LAYOUT_UNDEFINED,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
-        )
+        val aspect = VK_IMAGE_ASPECT_COLOR_BIT
 
         val region = VkBufferImageCopy.calloc(1)
             .bufferOffset(srcImage.memoryOffset.toLong())
@@ -178,34 +163,52 @@ class Textures(val name:String = "") {
 
         region.imageExtent().set(destImage.dimensions[0], destImage.dimensions[1], destImage.dimensions[2])
 
-        /** Copy the staging buffer to the GPU destImage */
-        cmd.copyBufferToImage(
-            srcImage.buffer,
-            destImage,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            region
-        )
+        commandPool.alloc().let { cmd ->
 
-        /**
-         * Change the GPU image layout from TRANSFER_DST_OPTIMAL
-         *                               to SHADER_READ_ONLY_OPTIMAL
-         */
-        cmd.setImageLayout(
-            destImage,
-            aspect,
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
-        );
-        cmd.end()
+            cmd.beginOneTimeSubmit()
 
-        log("Copying to GPU: $destImage")
-        val start = System.nanoTime()
-        transferQueue.submitAndWait(cmd)
-        transferCP.free(cmd)
+            /**
+             * Change dest image layout:
+             * from VK_IMAGE_LAYOUT_UNDEFINED
+             * to   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+             */
+            cmd.setImageLayout(
+                destImage,
+                aspect,
+                VK_IMAGE_LAYOUT_UNDEFINED,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+            )
+
+            /** Copy the staging buffer to the GPU destImage */
+            cmd.copyBufferToImage(
+                srcImage.buffer,
+                destImage,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                region
+            )
+
+            /**
+             * Change the GPU image layout from TRANSFER_DST_OPTIMAL
+             *                               to SHADER_READ_ONLY_OPTIMAL
+             */
+            cmd.setImageLayout(
+                destImage,
+                aspect,
+                VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+            )
+            cmd.end()
+
+            log("Copying to GPU: $destImage")
+            val start = System.nanoTime()
+
+            vk.queues.get(Queues.TRANSFER).submitAndWait(cmd)
+            commandPool.free(cmd)
+
+            val end = System.nanoTime()
+            log("Copy took ${(end -start)/1_000_000.0} ms")
+        }
         region.free()
-        val end = System.nanoTime()
-
-        log("Copy took ${(end-start)/1_000_000.0} ms")
     }
 }
 

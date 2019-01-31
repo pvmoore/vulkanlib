@@ -8,10 +8,10 @@ import org.lwjgl.vulkan.VK10.*
 import org.lwjgl.vulkan.VkClearValue
 import org.lwjgl.vulkan.VkDevice
 import org.lwjgl.vulkan.VkPhysicalDeviceFeatures
-import vulkan.VulkanApplication
 import vulkan.api.*
 import vulkan.api.buffer.VkBuffer
 import vulkan.api.memory.*
+import vulkan.app.VulkanApplication
 import vulkan.common.*
 import vulkan.d2.*
 import vulkan.misc.*
@@ -43,7 +43,7 @@ private fun test() {
         app?.destroy()
     }
     fun enterMainLoop() {
-        app!!.mainLoop()
+        app!!.graphics.enterLoop()
     }
 
     try{
@@ -61,8 +61,7 @@ private class GraphicsApplication : VulkanClient(
     height                  = 800,
     windowTitle             = "Vulkan 2D Graphics Test",
     enableVsync             = false,
-    prefNumSwapChainBuffers = 2,
-    prefNumComputeQueues    = 0)
+    prefNumSwapChainBuffers = 2)
 {
     override fun enableFeatures(f : VkPhysicalDeviceFeatures) {
         f.geometryShader(true)
@@ -93,7 +92,7 @@ private class GraphicsApplication : VulkanClient(
 
         initialise()
 
-        vk.showWindow()
+        vk.graphics.showWindow()
     }
     override fun render(frame: FrameInfo, res: PerFrameResource) {
 
@@ -105,10 +104,10 @@ private class GraphicsApplication : VulkanClient(
         // Renderpass initialLayout = UNDEFINED
         // The renderpass loadOp    = CLEAR
         b.beginRenderPass(
-            vk.renderPass,
+            vk.graphics.renderPass,
             res.frameBuffer,
             clearColour,
-            Vector4i(0,0, vk.windowSize.x, vk.windowSize.y),
+            Vector4i(0,0, vk.graphics.windowSize.x, vk.graphics.windowSize.y),
             true
         )
 
@@ -119,7 +118,7 @@ private class GraphicsApplication : VulkanClient(
         b.end()
 
         /** Submit render buffer */
-        vk.graphicsQueues[0].submit(
+        vk.queues.get(Queues.GRAPHICS).submit(
             arrayOf(b),
             arrayOf(res.imageAvailable),                                // wait semaphores
             intArrayOf(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT),  // wait stages
@@ -136,7 +135,7 @@ private class GraphicsApplication : VulkanClient(
     //  |_|   |_|  |_| \_/ \__,_| \__\__|
     //
     //=====================================================================================================
-    private lateinit var vk:VulkanApplication
+    private lateinit var vk: VulkanApplication
     private lateinit var device: VkDevice
     private val memory          = Memory()
     private val buffers         = Buffers()
@@ -156,9 +155,6 @@ private class GraphicsApplication : VulkanClient(
 
     private var sampler:VkSampler? = null
 
-    private val uploader by lazy { StagingTransfer(vk.transferCP, vk.transferQueues.first(), buffers.stagingBuffer) }
-
-
     private fun beforeRenderPass(frame: FrameInfo, res: PerFrameResource) {
         quads.forEach { q-> q.beforeRenderPass(frame, res) }
         rectangles.beforeRenderPass(frame, res)
@@ -176,7 +172,7 @@ private class GraphicsApplication : VulkanClient(
     private fun initialise() {
         log.info("Initialising client")
 
-        vk.setCallback(object : GLFWKeyCallback() {
+        vk.graphics.setCallback(object : GLFWKeyCallback() {
             override fun invoke(window: Long, key: Int, scancode: Int, action: Int, mods: Int) {
                 if(key == GLFW.GLFW_KEY_ESCAPE && action == GLFW.GLFW_RELEASE) {
                     GLFW.glfwSetWindowShouldClose(window, true)
@@ -184,7 +180,7 @@ private class GraphicsApplication : VulkanClient(
             }
         })
 
-        camera.resizeWindow(vk.windowSize)
+        camera.resizeWindow(vk.graphics.windowSize)
 
         memory.init()
         buffers.init()
@@ -195,7 +191,7 @@ private class GraphicsApplication : VulkanClient(
         val context = RenderContext(
             vk,
             device,
-            vk.renderPass
+            vk.graphics.renderPass
         )
 
         val renderBuffers = RenderBuffers(
@@ -272,7 +268,7 @@ private class GraphicsApplication : VulkanClient(
                 orange,orange,
                 30f)
 
-        text.init(context, renderBuffers, vk.fonts.get("segoeprint"), 10000, true)
+        text.init(context, renderBuffers, vk.graphics.fonts.get("segoeprint"), 10000, true)
             .camera(camera)
             .setSize(16f)
             .setColour(WHITE*1.1f)

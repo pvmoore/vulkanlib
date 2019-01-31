@@ -5,7 +5,6 @@ import org.lwjgl.glfw.GLFW
 import org.lwjgl.glfw.GLFWKeyCallback
 import org.lwjgl.vulkan.*
 import org.lwjgl.vulkan.VK10.*
-import vulkan.VulkanApplication
 import vulkan.api.*
 import vulkan.api.buffer.BufferAlloc
 import vulkan.api.buffer.VkBuffer
@@ -14,6 +13,7 @@ import vulkan.api.descriptor.*
 import vulkan.api.memory.*
 import vulkan.api.pipeline.ComputePipeline
 import vulkan.api.pipeline.bindComputePipeline
+import vulkan.app.VulkanApplication
 import vulkan.common.*
 import vulkan.misc.megabytes
 import vulkan.misc.orThrow
@@ -42,16 +42,16 @@ private fun test() {
 
         val totalMem = Runtime.getRuntime().totalMemory()
         val freeMem  = Runtime.getRuntime().freeMemory()
-        println("total: ${totalMem/ MEGABYTE} MB");
-        println("free : ${freeMem/ MEGABYTE} MB");
-        println("used : ${(totalMem-freeMem)/ MEGABYTE} MB");
+        println("total: ${totalMem/ MEGABYTE} MB")
+        println("free : ${freeMem/ MEGABYTE} MB")
+        println("used : ${(totalMem-freeMem)/ MEGABYTE} MB")
     }
     fun destroy() {
         client.destroy()
         app?.destroy()
     }
     fun enterMainLoop() {
-        app!!.mainLoop()
+        app!!.graphics.enterLoop()
     }
 
     try{
@@ -72,8 +72,7 @@ private class ComputeSimpleBufferCopy : VulkanClient(
     height                  = 800,
     windowTitle             = "Vulkan Compute Buffer Copy Test",
     enableVsync             = false,
-    prefNumSwapChainBuffers = 2,
-    prefNumComputeQueues    = 1)
+    prefNumSwapChainBuffers = 2)
 {
     private data class UBO(val value1:Float, val value2:Float, val _pad: Vector2i = Vector2i()) : Transferable {
         override fun writeTo(dest: ByteBuffer) {
@@ -98,7 +97,7 @@ private class ComputeSimpleBufferCopy : VulkanClient(
 //    }
 
     //==============================================================================================
-    private lateinit var vk:VulkanApplication
+    private lateinit var vk: VulkanApplication
     private lateinit var device: VkDevice
 
     private var deviceBufferMem:VkDeviceMemory? = null
@@ -141,6 +140,19 @@ private class ComputeSimpleBufferCopy : VulkanClient(
     override fun enableFeatures(f : VkPhysicalDeviceFeatures) {
 
     }
+
+    override fun selectQueues(props : VkQueueFamilyProperties.Buffer, queues : Queues) {
+        super.selectQueues(props, queues)
+
+        /** Select the first compute queue that we see */
+        props.forEachIndexed { i, family ->
+            if(family.queueCount() > 0) {
+                if(queues.isCompute(family.queueFlags())) {
+                    queues.select(Queues.COMPUTE, i, 1)
+                }
+            }
+        }
+    }
     override fun vulkanReady(vk: VulkanApplication) {
         println("Vulkan ready")
         this.vk     = vk
@@ -148,12 +160,14 @@ private class ComputeSimpleBufferCopy : VulkanClient(
 
         initialise()
 
-        vk.showWindow()
+        vk.graphics.showWindow()
     }
     override fun destroy() {
         println("Destroying Client")
         device?.let {
             device.waitForIdle()
+
+            uploader.destroy()
 
             clearColour.free()
             bufferBarrier.free()
@@ -216,7 +230,7 @@ private class ComputeSimpleBufferCopy : VulkanClient(
 
             .end()
 
-        vk.computeQueues[0].submit(
+        vk.queues.get(Queues.COMPUTE).submit(
             arrayOf(cmd),
             arrayOf(),      // wait semaphores
             intArrayOf(),   // wait stages
@@ -231,10 +245,10 @@ private class ComputeSimpleBufferCopy : VulkanClient(
         // Renderpass initialLayout = UNDEFINED
         // The renderpass loadOp    = CLEAR
         b.beginRenderPass(
-            vk.renderPass,
+            vk.graphics.renderPass,
             res.frameBuffer,
             clearColour,
-            Vector4i(0,0, vk.windowSize.x, vk.windowSize.y),
+            Vector4i(0,0, vk.graphics.windowSize.x, vk.graphics.windowSize.y),
             true
         );
 
@@ -243,7 +257,7 @@ private class ComputeSimpleBufferCopy : VulkanClient(
         b.end()
 
         /// Submit render buffer
-        vk.graphicsQueues[0].submit(
+        vk.queues.get(Queues.GRAPHICS).submit(
             arrayOf(b),
             arrayOf(computeCompleteSemaphore!!),                 // wait semaphores
             intArrayOf(VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT),     // wait stages
@@ -301,7 +315,7 @@ private class ComputeSimpleBufferCopy : VulkanClient(
     }
     private fun initialise() {
         println("--------------------------------------------------------------------- Initialising client")
-        vk.setCallback(object : GLFWKeyCallback() {
+        vk.graphics.setCallback(object : GLFWKeyCallback() {
             override fun invoke(window: Long, key: Int, scancode: Int, action: Int, mods: Int) {
                 if(key == GLFW.GLFW_KEY_ESCAPE && action == GLFW.GLFW_RELEASE) {
                     GLFW.glfwSetWindowShouldClose(window, true)
@@ -419,9 +433,8 @@ private class ComputeSimpleBufferCopy : VulkanClient(
     }
     private fun createCommandPools() {
         println("Creating command pools")
-        assert(vk.queueFamilies.compute!=-1)
 
-        computeCP  = device.createCommandPools(vk.queueFamilies.compute,
+        computeCP  = device.createCommandPools(vk.queues.getFamily(Queues.COMPUTE),
             VK_COMMAND_POOL_CREATE_TRANSIENT_BIT or
             VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT
         )
@@ -529,7 +542,7 @@ private class ComputeSimpleBufferCopy : VulkanClient(
     }
     private fun createPipeline() {
         println("Creating pipeline")
-        val context = RenderContext(vk, device, vk.renderPass)
+        val context = RenderContext(vk, device, vk.graphics.renderPass)
 
         pipeline = ComputePipeline(context)
             .withDSLayouts(arrayOf(dsLayout!!))

@@ -16,12 +16,12 @@ class FPS(private val suffix:String = " fps",
 
     fun init(context:RenderContext, buffers:RenderBuffers) : FPS {
         if(x==-1 || y==-1) {
-            x = context.vk.windowSize.x-135
+            x = context.vk.graphics.windowSize.x-135
             y = 5
         }
 
         this.context = context
-        this.text.init(context, buffers, context.vk.fonts.get("segoe-ui"), 100, true)
+        this.text.init(context, buffers, context.vk.graphics.fonts.get("segoe-ui"), 100, true)
                  .setColour(colour)
                  .setSize(24f)
                  .appendText(".....", x,y)
@@ -36,7 +36,7 @@ class FPS(private val suffix:String = " fps",
         return this
     }
     fun beforeRenderPass(frame: FrameInfo, res: PerFrameResource) {
-        text.updateText(0, String.format("%.2f%s", context.vk.fps, suffix))
+        text.updateText(0, String.format("%.2f%s", context.vk.graphics.fps, suffix))
         text.beforeRenderPass(frame, res)
     }
     fun insideRenderPass(frame: FrameInfo, res: PerFrameResource) {

@@ -2,7 +2,7 @@ package vulkan.font
 
 import org.apache.log4j.Logger
 import org.lwjgl.vulkan.VK10.VK_FORMAT_R8_UNORM
-import vulkan.VulkanApplication
+import vulkan.app.VulkanApplication
 import vulkan.misc.megabytes
 import vulkan.misc.readStringResource
 import vulkan.texture.Textures
@@ -10,15 +10,15 @@ import java.util.regex.Pattern
 
 object Fonts {
     private const val resourceDirectory:String = "fonts/"
-    private val SIZE = 512
+    private const val SIZE = 512
 
-    private lateinit var vk:VulkanApplication
+    private lateinit var vk: VulkanApplication
 
     private val log: Logger = Logger.getLogger("Fonts")
     private val textures    = Textures("Fonts")
     private val map         = HashMap<String, Font>()
 
-    fun init(vk:VulkanApplication) {
+    fun init(vk: VulkanApplication) {
         log.info("Initialising Fonts")
         this.vk = vk
         this.textures.init(vk, 10.megabytes())

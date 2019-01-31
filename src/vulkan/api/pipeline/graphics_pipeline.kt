@@ -226,7 +226,7 @@ class GraphicsPipeline(private val context: RenderContext)
 
         MemoryStack.stackPush().use { stack ->
 
-            val win = context.vk.windowSize
+            val win = context.vk.graphics.windowSize
 
             if(viewportState.viewportCount() == 0) {
 
