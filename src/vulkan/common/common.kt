@@ -17,8 +17,3 @@ val log:Logger = Logger.getLogger("Global")
 
 data class SurfaceFormat(var colorFormat:VkFormat = 0,var colorSpace:VkColorSpaceKHR = 0)
 
-
-class VulkanMemory {
-
-}
-

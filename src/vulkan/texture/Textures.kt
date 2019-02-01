@@ -91,7 +91,6 @@ class Textures(val name:String = "") {
         log("Allocated ${stagingSize/MEGABYTE} MB of texture staging texture memory")
 
         this.stagingBuffer = stagingMemory.allocStagingSrcBuffer(stagingSize).orThrow()
-        log("Allocated ${stagingSize/MEGABYTE} MB of texture staging buffer")
     }
     private fun create(name:String, format:VkFormat) : Texture {
         log("Creating texture \"$name\"")

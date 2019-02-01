@@ -7,16 +7,15 @@ import org.lwjgl.vulkan.*
 import org.lwjgl.vulkan.VK10.*
 import vulkan.api.*
 import vulkan.api.buffer.BufferAlloc
-import vulkan.api.buffer.VkBuffer
 import vulkan.api.buffer.copyBuffer
 import vulkan.api.descriptor.*
-import vulkan.api.memory.*
+import vulkan.api.memory.StagingTransfer
+import vulkan.api.memory.createStagingTransfer
 import vulkan.api.pipeline.ComputePipeline
 import vulkan.api.pipeline.bindComputePipeline
 import vulkan.app.VulkanApplication
 import vulkan.common.*
 import vulkan.misc.megabytes
-import vulkan.misc.orThrow
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
@@ -28,11 +27,6 @@ import java.nio.ByteOrder
 fun main() {
     println("Testing Vulkan Compute...")
 
-    test()
-
-    println("Finished")
-}
-private fun test() {
     val client = ComputeSimpleBufferCopy()
     var app: VulkanApplication? = null
 
@@ -62,6 +56,8 @@ private fun test() {
     }finally {
         destroy()
     }
+
+    println("Finished")
 }
 //=========================================================================================
 
@@ -100,17 +96,6 @@ private class ComputeSimpleBufferCopy : VulkanClient(
     private lateinit var vk: VulkanApplication
     private lateinit var device: VkDevice
 
-    private var deviceBufferMem:VkDeviceMemory? = null
-    private var deviceTextureMem:VkDeviceMemory? = null
-    private var stagingUploadMem:VkDeviceMemory? = null
-    private var stagingDownloadMem:VkDeviceMemory? = null
-
-    private var stagingSrcBuffer: VkBuffer?  = null
-    private var stagingDestBuffer: VkBuffer? = null
-    private var computeInputBuffer: VkBuffer? = null
-    private var computeOutputBuffer: VkBuffer? = null
-
-    private var uniformBuffer: VkBuffer? = null
     private var uniformBufferAlloc : BufferAlloc? = null
 
     private var descriptorPool: VkDescriptorPool? = null
@@ -123,7 +108,7 @@ private class ComputeSimpleBufferCopy : VulkanClient(
 
     private var pipeline:ComputePipeline? = null
 
-    private val uploader:StagingTransfer by lazy { vk.createStagingTransfer(stagingSrcBuffer!!) }
+    private val uploader:StagingTransfer by lazy { vk.createStagingTransfer(buffers.get(VulkanBuffers.STAGING_UPLOAD)) }
 
     private val uploadByteBuffer = ByteBuffer.allocateDirect(4.megabytes())
                                              .order(ByteOrder.nativeOrder())
@@ -134,6 +119,9 @@ private class ComputeSimpleBufferCopy : VulkanClient(
 
     private val clearColour   = VkClearValue.calloc(1)
     private val bufferBarrier = VkBufferMemoryBarrier.calloc(1)
+
+    private val memory = VulkanMemory()
+    private val buffers = VulkanBuffers()
 
     //private val frameResources = ArrayList<FrameResource>()
 
@@ -184,17 +172,8 @@ private class ComputeSimpleBufferCopy : VulkanClient(
 
             pipeline?.destroy()
 
-            stagingSrcBuffer?.destroy()
-            stagingDestBuffer?.destroy()
-            uniformBuffer?.destroy()
-
-            computeInputBuffer?.destroy()
-            computeOutputBuffer?.destroy()
-
-            deviceBufferMem?.free()
-            deviceTextureMem?.free()
-            stagingUploadMem?.free()
-            stagingDownloadMem?.free()
+            buffers.destroy()
+            memory.destroy()
         }
     }
     override fun render(frame: FrameInfo, res: PerFrameResource) {
@@ -207,8 +186,8 @@ private class ComputeSimpleBufferCopy : VulkanClient(
 
         cmd.beginOneTimeSubmit()
             .copyBuffer(
-                stagingSrcBuffer!!,
-                computeInputBuffer!!)
+                buffers.get(VulkanBuffers.STAGING_UPLOAD),
+                buffers.get("input"))
             .bindComputePipeline(pipeline!!.pipeline)
             .bindDescriptorSets(
                 VK_PIPELINE_BIND_POINT_COMPUTE,
@@ -225,8 +204,8 @@ private class ComputeSimpleBufferCopy : VulkanClient(
             )
             .dispatch(1.megabytes(), 1, 1)
             .copyBuffer(
-                computeOutputBuffer!!,
-                stagingDestBuffer!!)
+                buffers.get("output"),
+                buffers.get(VulkanBuffers.STAGING_DOWNLOAD))
 
             .end()
 
@@ -281,7 +260,9 @@ private class ComputeSimpleBufferCopy : VulkanClient(
         fun updateStagingBuffer() {
             /** Write data to staging upload buffer */
 
-            stagingSrcBuffer!!.mapForWriting(0, stagingSrcBuffer!!.size) { bb->
+            val b = buffers.get(VulkanBuffers.STAGING_UPLOAD)
+
+            b.mapForWriting(0, b.size) { bb->
                 bb.put(uploadByteBuffer)
                 uploadByteBuffer.flip()
             }
@@ -294,7 +275,9 @@ private class ComputeSimpleBufferCopy : VulkanClient(
         fun checkResult() {
             /** Read data from staging download buffer and check them */
 
-            stagingDestBuffer!!.mapForReading(0, stagingDestBuffer!!.size) { bb->
+            val b = buffers.get(VulkanBuffers.STAGING_DOWNLOAD)
+
+            b.mapForReading(0, b.size) { bb->
                 val floats = bb.asFloatBuffer()
 
                 val expected = floatArrayOf(
@@ -323,6 +306,23 @@ private class ComputeSimpleBufferCopy : VulkanClient(
             }
         })
 
+        memory.init(vk)
+            .createOnDevice(VulkanMemory.DEVICE, 256.megabytes())
+            .createStagingUpload(VulkanMemory.STAGING_UPLOAD, 32.megabytes())
+            .createStagingDownload(VulkanMemory.STAGING_DOWNLOAD, 32.megabytes())
+        log.info("$memory")
+
+        buffers.init(vk)
+            .createStagingUploadBuffer(VulkanBuffers.STAGING_UPLOAD, memory.get(VulkanMemory.STAGING_UPLOAD), 4.megabytes())
+            .createStagingUploadBuffer(VulkanBuffers.STAGING_DOWNLOAD, memory.get(VulkanMemory.STAGING_DOWNLOAD), 4.megabytes())
+            .createUniformBuffer(VulkanBuffers.UNIFORM, memory.get(VulkanMemory.DEVICE), 1.megabytes())
+            .createStorageBuffer("input", memory.get(VulkanMemory.DEVICE), 4.megabytes())
+            .createStorageBuffer("output", memory.get(VulkanMemory.DEVICE), 4.megabytes())
+        log.info("$buffers")
+
+        uniformBufferAlloc = buffers.get(VulkanBuffers.UNIFORM).allocate(ubo.size())
+        log.info("uniformBufferAlloc = $uniformBufferAlloc")
+
         /** Set the clear colour */
         clearColour.color()
             .float32(0, 0.5f)
@@ -344,9 +344,8 @@ private class ComputeSimpleBufferCopy : VulkanClient(
 //        println("upload buffer = ${dataIn[1]},${dataIn[2]}")
 //        println("upload buffer = ${fb.get(1)},${fb.get(2)}")
 
-        allocateMemoryPools()
+
         createCommandPools()
-        createBuffers()
         createDescriptors()
         createPipeline()
         //createFrameResources()
@@ -357,7 +356,7 @@ private class ComputeSimpleBufferCopy : VulkanClient(
             .dstAccessMask(VK_ACCESS_TRANSFER_READ_BIT)
             .srcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
             .dstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
-            .buffer(computeOutputBuffer!!.handle)
+            .buffer(buffers.get("output").handle)
             .offset(0)
             .size(VK_WHOLE_SIZE)
 
@@ -370,66 +369,9 @@ private class ComputeSimpleBufferCopy : VulkanClient(
         uploader.upload(uniformBufferAlloc!!, ubo)
 
         /** Write the input buffer */
-        uploader.upload(computeInputBuffer!!, 0, uploadByteBuffer)
+        uploader.upload(buffers.get("input"), 0, uploadByteBuffer)
 
         println("------------------------------------------------------------------------------------------")
-    }
-//    private fun createFrameResources() {
-//        println("Creating ${vk.frameResources.size} frame resources")
-//        vk.frameResources.forEach {
-//            frameResources.add(FrameResource())
-//        }
-//    }
-    private fun allocateMemoryPools() {
-        println("Allocating memory pools")
-        this.deviceBufferMem = vk.allocateMemory(size = 256.megabytes(),
-            desiredMemFlags =
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            undesiredMemFlags =
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-            bufferUsage =
-                VK_BUFFER_USAGE_TRANSFER_DST_BIT or
-                VK_BUFFER_USAGE_VERTEX_BUFFER_BIT or
-                VK_BUFFER_USAGE_INDEX_BUFFER_BIT or
-                VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
-        )
-
-        this.deviceTextureMem = vk.allocateMemory(size = 256.megabytes(),
-            desiredMemFlags =
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            undesiredMemFlags =
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-            imageUsage =
-                VK_IMAGE_USAGE_SAMPLED_BIT or
-                VK_IMAGE_USAGE_TRANSFER_DST_BIT
-        )
-
-        this.stagingUploadMem = vk.allocateMemory(size = 32.megabytes(),
-            desiredMemFlags =
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT or
-                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-            undesiredMemFlags =
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT or
-                VK_MEMORY_PROPERTY_HOST_CACHED_BIT,
-            bufferUsage =
-                VK_BUFFER_USAGE_TRANSFER_SRC_BIT
-        )
-
-        this.stagingDownloadMem = vk.allocateMemory(size = 32.megabytes(),
-            desiredMemFlags =
-                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT or
-                VK_MEMORY_PROPERTY_HOST_COHERENT_BIT or
-                VK_MEMORY_PROPERTY_HOST_CACHED_BIT,
-            undesiredMemFlags =
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            bufferUsage =
-                VK_BUFFER_USAGE_TRANSFER_DST_BIT
-        )
-        println("Created memory pools")
-        println("\t$deviceBufferMem")
-        println("\t$deviceTextureMem")
-        println("\t$stagingUploadMem")
-        println("\t$stagingDownloadMem")
     }
     private fun createCommandPools() {
         println("Creating command pools")
@@ -440,27 +382,6 @@ private class ComputeSimpleBufferCopy : VulkanClient(
         )
 
         computeCommandBuffer = computeCP?.alloc()
-    }
-    private fun createBuffers() {
-        println("Creating buffers")
-
-        /** Staging buffers */
-        stagingSrcBuffer  = stagingUploadMem!!.allocStagingSrcBuffer(4.megabytes().orThrow())
-        stagingDestBuffer = stagingDownloadMem!!.allocStagingDestBuffer(4.megabytes())
-        println("stagingSrcBuffer  = $stagingSrcBuffer")
-        println("stagingDestBuffer = $stagingDestBuffer")
-
-        /** Storage buffers */
-        computeInputBuffer  = deviceBufferMem!!.allocStorageBuffer(4.megabytes(), VK_BUFFER_USAGE_TRANSFER_DST_BIT)
-        computeOutputBuffer = deviceBufferMem!!.allocStorageBuffer(4.megabytes(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
-
-        /** Uniform buffer */
-        uniformBuffer = deviceBufferMem!!.allocUniformBuffer(1.megabytes(), VK_BUFFER_USAGE_TRANSFER_DST_BIT).orThrow().also {
-            println("uniform = $it")
-
-            uniformBufferAlloc = it.allocate(ubo.size())
-            println("uniformBufferAlloc = $uniformBufferAlloc")
-        }
     }
     private fun createDescriptors() {
         println("Creating bindings")
@@ -509,17 +430,17 @@ private class ComputeSimpleBufferCopy : VulkanClient(
 
         /** Update the set with our buffers */
         val bufferInfos = VkDescriptorBufferInfo.calloc(3).also {
-            it[0].buffer(uniformBuffer!!.handle)
+            it[0].buffer(buffers.get(VulkanBuffers.UNIFORM).handle)
             it[0].offset(uniformBufferAlloc!!.bufferOffset.toLong())
             it[0].range(uniformBufferAlloc!!.size.toLong())
 
-            it[1].buffer(computeInputBuffer!!.handle)
+            it[1].buffer(buffers.get("input").handle)
             it[1].offset(0)
-            it[1].range(computeInputBuffer!!.size.toLong())
+            it[1].range(buffers.get("input").size.toLong())
 
-            it[2].buffer(computeOutputBuffer!!.handle)
+            it[2].buffer(buffers.get("output").handle)
             it[2].offset(0)
-            it[2].range(computeOutputBuffer!!.size.toLong())
+            it[2].range(buffers.get("output").size.toLong())
         }
 
         val imageInfos = VkDescriptorImageInfo.calloc(1)

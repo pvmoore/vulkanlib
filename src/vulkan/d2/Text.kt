@@ -19,7 +19,7 @@ import vulkan.misc.*
 
 class Text {
 
-    fun init(context: RenderContext, renderBuffers: RenderBuffers, font: Font, maxCharacters:Int, dropShadow:Boolean)
+    fun init(context: RenderContext, buffers: VulkanBuffers, font: Font, maxCharacters:Int, dropShadow:Boolean)
         : Text
     {
         assert(maxCharacters>0)
@@ -28,7 +28,7 @@ class Text {
         this.context       = context
         this.font          = font
         this.size          = font.size.toFloat()
-        initialise(renderBuffers)
+        initialise(buffers)
         return this
     }
     fun destroy() {
@@ -157,12 +157,12 @@ class Text {
     //    |_|          |_|  \_\     |_____|         \/        /_/    \_\       |_|       |______|
     //
     //=======================================================================================================
-    private inner class BufferAllocs(b: RenderBuffers) {
-        var stagingVertices: BufferAlloc = b.staging.allocate(vertices.vertexSize * maxCharacters).orThrow()
-        val stagingUniform: BufferAlloc = b.staging.allocate(ubo.size()).orThrow()
+    private inner class BufferAllocs(b: VulkanBuffers) {
+        var stagingVertices: BufferAlloc = b.get(VulkanBuffers.STAGING_UPLOAD).allocate(vertices.vertexSize * maxCharacters).orThrow()
+        val stagingUniform: BufferAlloc = b.get(VulkanBuffers.STAGING_UPLOAD).allocate(ubo.size()).orThrow()
 
-        val vertexBuffer: BufferAlloc = b.vertex.allocate(vertices.vertexSize * maxCharacters).orThrow()
-        val uniformBuffer: BufferAlloc = b.uniform.allocate(ubo.size()).orThrow()
+        val vertexBuffer: BufferAlloc = b.get(VulkanBuffers.VERTEX).allocate(vertices.vertexSize * maxCharacters).orThrow()
+        val uniformBuffer: BufferAlloc = b.get(VulkanBuffers.UNIFORM).allocate(ubo.size()).orThrow()
 
         fun free() {
             stagingVertices.free()
@@ -226,9 +226,9 @@ class Text {
     private var uboChanged      = true
     private var verticesChanged = true
 
-    private fun initialise(renderBuffers : RenderBuffers) {
+    private fun initialise(vBuffers : VulkanBuffers) {
 
-        buffers = BufferAllocs(renderBuffers)
+        buffers = BufferAllocs(vBuffers)
 
         sampler = context.device.createSampler { info-> }
 

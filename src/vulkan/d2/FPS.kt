@@ -2,8 +2,8 @@ package vulkan.d2
 
 import vulkan.common.FrameInfo
 import vulkan.common.PerFrameResource
-import vulkan.common.RenderBuffers
 import vulkan.common.RenderContext
+import vulkan.common.VulkanBuffers
 import vulkan.misc.RGBA
 
 class FPS(private val suffix:String = " fps",
@@ -14,7 +14,7 @@ class FPS(private val suffix:String = " fps",
     private lateinit var context:RenderContext
     private val text = Text()
 
-    fun init(context:RenderContext, buffers:RenderBuffers) : FPS {
+    fun init(context:RenderContext, buffers: VulkanBuffers) : FPS {
         if(x==-1 || y==-1) {
             x = context.vk.graphics.windowSize.x-135
             y = 5

@@ -19,11 +19,11 @@ import vulkan.misc.set
 
 
 class RoundRectangles {
-    fun init(context: RenderContext, renderBuffers: RenderBuffers, maxRects:Int) : RoundRectangles {
+    fun init(context: RenderContext, buffers: VulkanBuffers, maxRects:Int) : RoundRectangles {
         assert(maxRects>0)
         this.context    = context
         this.maxRects   = maxRects
-        initialise(renderBuffers)
+        initialise(buffers)
         return this
     }
     fun destroy() {
@@ -106,12 +106,12 @@ class RoundRectangles {
     //    |_|          |_|  \_\     |_____|         \/        /_/    \_\       |_|       |______|
     //
     //=======================================================================================================
-    private inner class BufferAllocs(b: RenderBuffers) {
-        var stagingVertices: BufferAlloc = b.staging.allocate(vertices.vertexSize * maxRects).orThrow()
-        val stagingUniform: BufferAlloc = b.staging.allocate(ubo.size()).orThrow()
+    private inner class BufferAllocs(b: VulkanBuffers) {
+        var stagingVertices: BufferAlloc = b.get(VulkanBuffers.STAGING_UPLOAD).allocate(vertices.vertexSize * maxRects).orThrow()
+        val stagingUniform: BufferAlloc = b.get(VulkanBuffers.STAGING_UPLOAD).allocate(ubo.size()).orThrow()
 
-        val vertexBuffer: BufferAlloc = b.vertex.allocate(vertices.vertexSize * maxRects).orThrow()
-        val uniformBuffer: BufferAlloc = b.uniform.allocate(ubo.size()).orThrow()
+        val vertexBuffer: BufferAlloc = b.get(VulkanBuffers.VERTEX).allocate(vertices.vertexSize * maxRects).orThrow()
+        val uniformBuffer: BufferAlloc = b.get(VulkanBuffers.UNIFORM).allocate(ubo.size()).orThrow()
 
         fun free() {
             stagingVertices.free()
@@ -180,9 +180,9 @@ class RoundRectangles {
     private var verticesChanged = true
 
 
-    private fun initialise(renderBuffers : RenderBuffers) {
+    private fun initialise(vBuffers : VulkanBuffers) {
 
-        buffers = BufferAllocs(renderBuffers)
+        buffers = BufferAllocs(vBuffers)
 
         /**
          * Bindings:

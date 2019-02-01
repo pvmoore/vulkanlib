@@ -4,13 +4,11 @@ import org.joml.Vector2f
 import org.joml.Vector4i
 import org.lwjgl.glfw.GLFW
 import org.lwjgl.glfw.GLFWKeyCallback
-import org.lwjgl.vulkan.VK10.*
+import org.lwjgl.vulkan.VK10.VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
 import org.lwjgl.vulkan.VkClearValue
 import org.lwjgl.vulkan.VkDevice
 import org.lwjgl.vulkan.VkPhysicalDeviceFeatures
 import vulkan.api.*
-import vulkan.api.buffer.VkBuffer
-import vulkan.api.memory.*
 import vulkan.app.VulkanApplication
 import vulkan.common.*
 import vulkan.d2.*
@@ -22,15 +20,9 @@ import vulkan.texture.Textures
  * Vulkan graphics example.
  */
 
-fun main() {
-
+fun main(args:Array<String>) {
     log.info("Testing Vulkan Graphics...")
 
-    test()
-
-    log.info("Finished")
-}
-private fun test() {
     val client = GraphicsApplication()
     var app: VulkanApplication? = null
 
@@ -54,6 +46,8 @@ private fun test() {
     }finally {
         destroy()
     }
+
+    log.info("Finished")
 }
 private class GraphicsApplication : VulkanClient(
     windowed                = true,
@@ -137,8 +131,8 @@ private class GraphicsApplication : VulkanClient(
     //=====================================================================================================
     private lateinit var vk: VulkanApplication
     private lateinit var device: VkDevice
-    private val memory          = Memory()
-    private val buffers         = Buffers()
+    private val memory          = VulkanMemory()
+    private val buffers         = VulkanBuffers()
     private val camera          = Camera2D()
     private val quads           = arrayOf(Quad(), Quad())
     private val rectangles      = Rectangles()
@@ -182,8 +176,19 @@ private class GraphicsApplication : VulkanClient(
 
         camera.resizeWindow(vk.graphics.windowSize)
 
-        memory.init()
-        buffers.init()
+        memory.init(vk)
+            .createOnDevice(VulkanMemory.DEVICE, 256.megabytes())
+            .createShared(VulkanMemory.SHARED, 1.megabytes())
+            .createStagingUpload(VulkanMemory.STAGING_UPLOAD, 64.megabytes())
+        log.info("$memory")
+
+        buffers.init(vk)
+            .createVertexBuffer(VulkanBuffers.VERTEX, memory.get(VulkanMemory.DEVICE), 64.megabytes())
+            .createIndexBuffer(VulkanBuffers.INDEX, memory.get(VulkanMemory.DEVICE), 64.megabytes())
+            .createStagingUploadBuffer(VulkanBuffers.STAGING_UPLOAD, memory.get(VulkanMemory.STAGING_UPLOAD), 64.megabytes())
+            .createUniformBuffer(VulkanBuffers.UNIFORM, memory.get(VulkanMemory.SHARED), 1.megabytes())
+        log.info("$buffers")
+
         textures.init(vk, 16.megabytes())
 
         createSamplers()
@@ -194,29 +199,21 @@ private class GraphicsApplication : VulkanClient(
             vk.graphics.renderPass
         )
 
-        val renderBuffers = RenderBuffers(
-            staging  = buffers.stagingBuffer,
-            readback = buffers.stagingBuffer,
-            vertex   = buffers.vertexBuffer,
-            index    = buffers.indexBuffer,
-            uniform  = buffers.uniformBuffer
-        )
-
         quads[0]
-            .init(context, renderBuffers, textures.get("cat.dds").image.getView(), sampler!!)
+            .init(context, buffers, textures.get("cat.dds").image.getView(), sampler!!)
             .camera(camera)
             .model(Matrix4f()
                     .translate(515f,10f,0f)
                     .scale(100f, 100f, 0f))
         quads[1]
-            .init(context, renderBuffers, textures.get("dog.dds").image.getView(), sampler!!)
+            .init(context, buffers, textures.get("dog.dds").image.getView(), sampler!!)
             .camera(camera)
             .model(Matrix4f()
                 .translate(10f,10f,0f)
                 .scale(100f, 100f, 0f))
 
         rectangles
-            .init(context, renderBuffers, 1000)
+            .init(context, buffers, 1000)
             .camera(camera)
             .setColour(WHITE)
             .addRectangle(
@@ -237,7 +234,7 @@ private class GraphicsApplication : VulkanClient(
         val black  = RGBA(0f, 0f, 0f, 0f)
 
         roundRectangles
-            .init(context, renderBuffers, 100)
+            .init(context, buffers, 100)
             .camera(camera)
             .setColour(RGBA(0.3f, 0.5f, 0.7f, 1f))
             .addRectangle(Vector2f(650f,350f), Vector2f(150f,100f), 7f)
@@ -268,7 +265,7 @@ private class GraphicsApplication : VulkanClient(
                 orange,orange,
                 30f)
 
-        text.init(context, renderBuffers, vk.graphics.fonts.get("segoeprint"), 10000, true)
+        text.init(context, buffers, vk.graphics.fonts.get("segoeprint"), 10000, true)
             .camera(camera)
             .setSize(16f)
             .setColour(WHITE*1.1f)
@@ -280,125 +277,10 @@ private class GraphicsApplication : VulkanClient(
             text.appendText("Hello there I am some text...", 10, 110+i*20)
         }
 
-        fps.init(context, renderBuffers)
+        fps.init(context, buffers)
            .camera(camera)
-
-
-
-
     }
     private fun createSamplers() {
         sampler = device.createSampler { info-> }
-    }
-    //============================================================================================
-    private inner class Memory {
-        private var isInitialised = false
-
-        lateinit var deviceBufferMem:VkDeviceMemory
-        lateinit var deviceImageMem:VkDeviceMemory
-        lateinit var deviceUBOMem:VkDeviceMemory
-        lateinit var stagingMem:VkDeviceMemory
-
-        fun init() {
-            log.info("initialise")
-            deviceBufferMem = vk.allocateMemory(
-                size = 256.megabytes(),
-                type = vk.selectDeviceMemoryType(256.megabytes())!!)
-            deviceImageMem = vk.allocateMemory(
-                size = 256.megabytes(),
-                type = vk.selectDeviceMemoryType(256.megabytes())!!)
-            stagingMem = vk.allocateMemory(
-                size = 64.megabytes(),
-                type = vk.selectStagingUploadMemoryType(64.megabytes())!!
-            )
-
-            /** Try for shared device and host (AMD only) otherwise just use standard device only */
-            val sharedType = vk.selectSharedMemoryType(1.megabytes()) ?:
-            vk.selectDeviceMemoryType(1.megabytes())
-
-            deviceUBOMem = vk.allocateMemory(
-                size = 1.megabytes(),
-                type = sharedType!!
-            )
-
-            isInitialised = true
-            log.info("Memory {\n$this}")
-        }
-        fun destroy() {
-            isInitialised.ifTrue {
-                deviceBufferMem.free()
-                deviceImageMem.free()
-                deviceUBOMem.free()
-                stagingMem.free()
-            }
-        }
-
-        override fun toString(): String {
-            val buf = StringBuilder()
-            buf.append("\tDevice  : ").append(deviceBufferMem).append("\n")
-            buf.append("\tTexture : ").append(deviceImageMem).append("\n")
-            buf.append("\tUBO     : ").append(deviceUBOMem).append("\n")
-            buf.append("\tStaging : ").append(stagingMem).append("\n")
-            return buf.toString()
-        }
-    }
-    private inner class Buffers {
-        private var isInitialised = false
-
-        lateinit var stagingBuffer: VkBuffer
-        lateinit var vertexBuffer: VkBuffer
-        lateinit var indexBuffer: VkBuffer
-        lateinit var uniformBuffer: VkBuffer
-
-        fun init() {
-            memory.stagingMem.allocBuffer(
-                size      = 64.megabytes(),
-                overrides = { info -> info.usage(VK_BUFFER_USAGE_TRANSFER_SRC_BIT) },
-                onError   = { reason -> throw Error("Unable to allocate staging buffer: $reason") },
-                onSuccess = { b ->  stagingBuffer = b }
-            )
-            memory.deviceBufferMem.allocBuffer(
-                size      = 64.megabytes(),
-                overrides = { info -> info.usage(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT or VK_BUFFER_USAGE_TRANSFER_DST_BIT) },
-                onError   = { reason -> throw Error("Unable to allocate vertex buffer: $reason") },
-                onSuccess = { b ->
-                    vertexBuffer      = b
-                }
-            )
-            memory.deviceUBOMem.allocBuffer(
-                size      = 1.megabytes(),
-                overrides = { info -> info.usage(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT or VK_BUFFER_USAGE_TRANSFER_DST_BIT) },
-                onError   = { reason -> throw Error("Unable to allocate uniform buffer: $reason") },
-                onSuccess = { b ->
-                    uniformBuffer      = b
-                }
-            )
-            memory.deviceBufferMem.allocBuffer(
-                size      = 64.megabytes(),
-                overrides = { info -> info.usage(VK_BUFFER_USAGE_INDEX_BUFFER_BIT or VK_BUFFER_USAGE_TRANSFER_DST_BIT) },
-                onError   = { reason -> throw Error("Unable to allocate index buffer: $reason") },
-                onSuccess = { b ->
-                    indexBuffer      = b
-                }
-            )
-            isInitialised = true
-            log.info("Buffers {\n$this}")
-        }
-        fun destroy() {
-            isInitialised.ifTrue {
-                stagingBuffer.destroy()
-                vertexBuffer.destroy()
-                indexBuffer.destroy()
-                uniformBuffer.destroy()
-            }
-        }
-        override fun toString(): String {
-            val buf = StringBuilder()
-            buf.append("\tVertex        : ").append(vertexBuffer).append("\n")
-            buf.append("\tIndex         : ").append(indexBuffer).append("\n")
-            buf.append("\tUBO           : ").append(uniformBuffer).append("\n")
-            buf.append("\tStaging       : ").append(stagingBuffer).append("\n")
-            return buf.toString()
-        }
     }
 }

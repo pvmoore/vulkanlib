@@ -25,7 +25,6 @@ object Fonts {
         log.info("Created 10 MB of font memory")
     }
     fun destroy() {
-        log.info("Initialising Fonts")
         map.entries.forEach { e->
             log.info("Destroying font ${e.key}")
         }

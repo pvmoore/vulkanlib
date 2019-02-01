@@ -4,9 +4,9 @@ import org.lwjgl.system.MemoryUtil.memAllocLong
 import org.lwjgl.system.MemoryUtil.memFree
 import org.lwjgl.vulkan.*
 import org.lwjgl.vulkan.VK10.*
+import vulkan.app.VulkanApplication
 import vulkan.common.MEGABYTE
 import vulkan.common.MemoryType
-import vulkan.app.VulkanApplication
 import vulkan.misc.VkBufferUsageFlags
 import vulkan.misc.VkImageUsageFlags
 import vulkan.misc.VkMemoryPropertyFlags
@@ -22,46 +22,99 @@ import vulkan.misc.check
  */
 
 fun VulkanApplication.selectDeviceMemoryType(size:Int): MemoryType? {
-    val desiredMemFlags   = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-    val undesiredMemFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
-    val bufferUsage       = VK_BUFFER_USAGE_TRANSFER_DST_BIT
-    val imageUsage        = VK_IMAGE_USAGE_TRANSFER_DST_BIT
-    return device.selectMemoryType(physicalDeviceMemoryProperties, desiredMemFlags, undesiredMemFlags, size, bufferUsage, imageUsage)
+
+    return device.selectMemoryType(physicalDeviceMemoryProperties,
+        desiredMemFlags   = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        undesiredMemFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+        minHeapSize       = size,
+        bufferUsage       = VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        imageUsage        = VK_IMAGE_USAGE_TRANSFER_DST_BIT)
 }
 fun VulkanApplication.selectStagingUploadMemoryType(size:Int): MemoryType? {
-    val desiredMemFlags   = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT or VK_MEMORY_PROPERTY_HOST_COHERENT_BIT
-    val undesiredMemFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT or VK_MEMORY_PROPERTY_HOST_CACHED_BIT
-    val bufferUsage       = VK_BUFFER_USAGE_TRANSFER_SRC_BIT
-    val imageUsage        = VK_IMAGE_USAGE_TRANSFER_SRC_BIT
-    return device.selectMemoryType(physicalDeviceMemoryProperties, desiredMemFlags, undesiredMemFlags, size, bufferUsage, imageUsage)
+
+    // Optimal flags
+    device.selectMemoryType(physicalDeviceMemoryProperties,
+        desiredMemFlags   = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT or VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        undesiredMemFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT or VK_MEMORY_PROPERTY_HOST_CACHED_BIT,
+        minHeapSize       = size,
+        bufferUsage       = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        imageUsage        = VK_IMAGE_USAGE_TRANSFER_SRC_BIT)?.let { return it }
+
+    // Try again without the host coherent bit
+    device.selectMemoryType(physicalDeviceMemoryProperties,
+        desiredMemFlags   = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+        undesiredMemFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT or VK_MEMORY_PROPERTY_HOST_CACHED_BIT,
+        minHeapSize       = size,
+        bufferUsage       = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        imageUsage        = VK_IMAGE_USAGE_TRANSFER_SRC_BIT)?.let { return it }
+
+    // And finally without the host cache bit
+    device.selectMemoryType(physicalDeviceMemoryProperties,
+        desiredMemFlags   = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+        undesiredMemFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        minHeapSize       = size,
+        bufferUsage       = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        imageUsage        = VK_IMAGE_USAGE_TRANSFER_SRC_BIT)?.let { return it }
+
+    return null
+}
+fun VulkanApplication.selectStagingDownloadMemoryType(size:Int): MemoryType? {
+
+    // Optimal flags
+    device.selectMemoryType(physicalDeviceMemoryProperties,
+        desiredMemFlags   = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT or
+                            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT or
+                            VK_MEMORY_PROPERTY_HOST_CACHED_BIT,
+        undesiredMemFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        minHeapSize       = size,
+        bufferUsage       = VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        imageUsage        = VK_IMAGE_USAGE_TRANSFER_DST_BIT)?.let { return it }
+
+    // Try again without the cache bit
+    device.selectMemoryType(physicalDeviceMemoryProperties,
+        desiredMemFlags   = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT or
+                            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        undesiredMemFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        minHeapSize       = size,
+        bufferUsage       = VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        imageUsage        = VK_IMAGE_USAGE_TRANSFER_DST_BIT)?.let { return it }
+
+    // And finally without the host coherent bit
+    device.selectMemoryType(physicalDeviceMemoryProperties,
+        desiredMemFlags   = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+        undesiredMemFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        minHeapSize       = size,
+        bufferUsage       = VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        imageUsage        = VK_IMAGE_USAGE_TRANSFER_DST_BIT)?.let { return it }
+
+    return null
 }
 fun VulkanApplication.selectSharedMemoryType(size:Int): MemoryType? {
-    val desiredMemFlags   = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT or VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT
-    val undesiredMemFlags = 0
-    val bufferUsage       = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT
-    val imageUsage        = 0
-    return device.selectMemoryType(physicalDeviceMemoryProperties, desiredMemFlags, undesiredMemFlags, size, bufferUsage, imageUsage)
-}
-fun VulkanApplication.selectMemoryType(size:Int,
-                                                  desiredMemFlags:VkMemoryPropertyFlags,
-                                                  undesiredMemFlags:VkMemoryPropertyFlags,
-                                                  bufferUsage:VkBufferUsageFlags = 0,
-                                                  imageUsage:VkImageUsageFlags = 0)
-    : MemoryType?
-{
-    return device.selectMemoryType(physicalDeviceMemoryProperties, desiredMemFlags, undesiredMemFlags, size, bufferUsage, imageUsage)
-}
 
+    // Only available on AMD cards currently
+    device.selectMemoryType(physicalDeviceMemoryProperties,
+        desiredMemFlags   = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT or
+                            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        undesiredMemFlags = 0,
+        minHeapSize       = size,
+        bufferUsage       = VK_BUFFER_USAGE_TRANSFER_SRC_BIT or
+                            VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        imageUsage        = VK_IMAGE_USAGE_TRANSFER_SRC_BIT or
+                            VK_IMAGE_USAGE_TRANSFER_DST_BIT)?.let { return it }
+
+    // Return device memory
+    return selectDeviceMemoryType(size)
+}
 /**
  *  Recommended max size per allocation for GPU heap is 256MB
  *                                          CPU heap is 256MB
  *                                          Shared heap (of 256MB) is 64MB
  */
 fun VulkanApplication.allocateMemory(size:Int,
-                                                desiredMemFlags:VkMemoryPropertyFlags,
-                                                undesiredMemFlags:VkMemoryPropertyFlags,
-                                                bufferUsage:VkBufferUsageFlags = 0,
-                                                imageUsage:VkImageUsageFlags = 0)
+                                     desiredMemFlags:VkMemoryPropertyFlags,
+                                     undesiredMemFlags:VkMemoryPropertyFlags,
+                                     bufferUsage:VkBufferUsageFlags = 0,
+                                     imageUsage:VkImageUsageFlags = 0)
     : VkDeviceMemory?
 {
     val type =

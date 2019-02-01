@@ -12,14 +12,9 @@ import vulkan.common.log
 /**
  * Vulkan headless compute example
  */
-fun main() {
+fun main(args:Array<String>) {
     println("Testing Vulkan Compute...")
 
-    test()
-
-    println("Finished")
-}
-private fun test() {
     val client = HeadlessCompute()
     var app: VulkanApplication? = null
 
@@ -46,6 +41,8 @@ private fun test() {
     }finally {
         destroy()
     }
+
+    println("Finished")
 }
 //=========================================================================================
 private class HeadlessCompute : VulkanClient(headless = true) {

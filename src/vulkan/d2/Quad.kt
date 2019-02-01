@@ -54,15 +54,15 @@ class Quad {
         )
         override fun getArray() = array
     }
-    private inner class BufferAllocs(
-        b: RenderBuffers,
-        val stagingVertices: BufferAlloc = b.staging.allocate(vertices.size()).orThrow(),
-        val stagingIndices: BufferAlloc = b.staging.allocate(indices.size()).orThrow(),
-        val stagingUniform: BufferAlloc = b.staging.allocate(ubo.size()).orThrow(),
+    private inner class BufferAllocs(b: VulkanBuffers,
 
-        val vertexBuffer: BufferAlloc  = b.vertex.allocate(vertices.size()).orThrow(),
-        val indexBuffer: BufferAlloc   = b.index.allocate(indices.size()).orThrow(),
-        val uniformBuffer: BufferAlloc = b.uniform.allocate(ubo.size()).orThrow())
+        val stagingVertices: BufferAlloc = b.get(VulkanBuffers.STAGING_UPLOAD).allocate(vertices.size()).orThrow(),
+        val stagingIndices: BufferAlloc = b.get(VulkanBuffers.STAGING_UPLOAD).allocate(indices.size()).orThrow(),
+        val stagingUniform: BufferAlloc = b.get(VulkanBuffers.STAGING_UPLOAD).allocate(ubo.size()).orThrow(),
+
+        val vertexBuffer: BufferAlloc  = b.get(VulkanBuffers.VERTEX).allocate(vertices.size()).orThrow(),
+        val indexBuffer: BufferAlloc   = b.get(VulkanBuffers.INDEX).allocate(indices.size()).orThrow(),
+        val uniformBuffer: BufferAlloc = b.get(VulkanBuffers.UNIFORM).allocate(ubo.size()).orThrow())
     {
         fun free() {
             stagingVertices.free()
@@ -90,14 +90,14 @@ class Quad {
     private lateinit var pipeline: GraphicsPipeline
 
     fun init(context: RenderContext,
-             renderBuffers: RenderBuffers,
+             buffers: VulkanBuffers,
              imageView: VkImageView,
              sampler:VkSampler)
         : Quad
     {
         this.device       = context.device
         this.renderPass   = context.renderPass
-        this.bufferAllocs = BufferAllocs(renderBuffers)
+        this.bufferAllocs = BufferAllocs(buffers)
 
         createDescriptors(imageView, sampler)
         createPipeline(context)

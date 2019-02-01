@@ -18,11 +18,11 @@ import vulkan.misc.set
 
 class Rectangles {
 
-    fun init(context:RenderContext, renderBuffers:RenderBuffers, maxRects:Int) : Rectangles{
+    fun init(context:RenderContext, buffers:VulkanBuffers, maxRects:Int) : Rectangles{
         assert(maxRects>0)
         this.context    = context
         this.maxRects   = maxRects
-        initialise(renderBuffers)
+        initialise(buffers)
         return this
     }
     fun destroy() {
@@ -114,12 +114,12 @@ class Rectangles {
     //    |_|          |_|  \_\     |_____|         \/        /_/    \_\       |_|       |______|
     //
     //=======================================================================================================
-    private inner class BufferAllocs(b: RenderBuffers) {
-        var stagingVertices: BufferAlloc = b.staging.allocate(vertices.vertexSize * 6 * maxRects).orThrow()
-        val stagingUniform: BufferAlloc = b.staging.allocate(ubo.size()).orThrow()
+    private inner class BufferAllocs(b: VulkanBuffers) {
+        var stagingVertices: BufferAlloc = b.get(VulkanBuffers.STAGING_UPLOAD).allocate(vertices.vertexSize * 6 * maxRects).orThrow()
+        val stagingUniform: BufferAlloc = b.get(VulkanBuffers.STAGING_UPLOAD).allocate(ubo.size()).orThrow()
 
-        val vertexBuffer: BufferAlloc  = b.vertex.allocate(vertices.vertexSize * 6 * maxRects).orThrow()
-        val uniformBuffer: BufferAlloc = b.uniform.allocate(ubo.size()).orThrow()
+        val vertexBuffer: BufferAlloc  = b.get(VulkanBuffers.VERTEX).allocate(vertices.vertexSize * 6 * maxRects).orThrow()
+        val uniformBuffer: BufferAlloc = b.get(VulkanBuffers.UNIFORM).allocate(ubo.size()).orThrow()
 
         fun free() {
             stagingVertices.free()
@@ -180,9 +180,9 @@ class Rectangles {
     private var verticesChanged = true
     private var uboChanged      = true
 
-    private fun initialise(renderBuffers:RenderBuffers) {
+    private fun initialise(vbuffers:VulkanBuffers) {
 
-        buffers = BufferAllocs(renderBuffers)
+        buffers = BufferAllocs(vbuffers)
 
         /**
          * Bindings:
