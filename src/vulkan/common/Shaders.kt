@@ -17,6 +17,7 @@ object Shaders {
     private val log: Logger                          = Logger.getLogger("Shaders")
     private val srcDirectory:String                  = "./src/shaders/".normalisePath(true)
     private val fileTargetDirectory:String           = "./resources/shaders/".normalisePath(true)
+    private var compilerPath:String                  = "glslangValidator.exe"
 
     private val modules = ArrayList<VkShaderModule>()
 
@@ -27,6 +28,10 @@ object Shaders {
     }
     fun destroy() {
         modules.forEach { it.destroy() }
+    }
+
+    fun setCompilerPath(path:String) {
+        this.compilerPath = path
     }
 
     fun get(name:String, props:Map<String,String>, includes:List<String>): VkShaderModule {
@@ -41,7 +46,7 @@ object Shaders {
         val ext      = File(name).extension
         assert(ext in listOf("comp","vert","frag","geom"))
 
-        val code = if(DEBUG) {
+        val code = if(DEBUG && File(srcDirectory + name).exists()) {
             /** Compile the shader and write the spirv to the resources/shaders folder */
             val targetName = "$fileTargetDirectory${baseName}_$ext.spv"
             compileShader(name, targetName, props, includes)
@@ -65,7 +70,7 @@ object Shaders {
         log.info("Compiling shader $srcName --> $targetName")
 
         val commands = mutableListOf(
-            "glslangValidator.exe",
+            compilerPath,
             "-V",
             "-Os",  // minimise size
             //"-g", // debug info

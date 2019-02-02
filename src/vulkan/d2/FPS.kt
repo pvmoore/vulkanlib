@@ -3,7 +3,6 @@ package vulkan.d2
 import vulkan.common.FrameInfo
 import vulkan.common.PerFrameResource
 import vulkan.common.RenderContext
-import vulkan.common.VulkanBuffers
 import vulkan.misc.RGBA
 
 class FPS(private val suffix:String = " fps",
@@ -14,14 +13,14 @@ class FPS(private val suffix:String = " fps",
     private lateinit var context:RenderContext
     private val text = Text()
 
-    fun init(context:RenderContext, buffers: VulkanBuffers) : FPS {
+    fun init(context:RenderContext) : FPS {
         if(x==-1 || y==-1) {
             x = context.vk.graphics.windowSize.x-135
             y = 5
         }
 
         this.context = context
-        this.text.init(context, buffers, context.vk.graphics.fonts.get("segoe-ui"), 100, true)
+        this.text.init(context, context.vk.graphics.fonts.get("segoe-ui"), 100, true)
                  .setColour(colour)
                  .setSize(24f)
                  .appendText(".....", x,y)

@@ -19,7 +19,7 @@ import vulkan.misc.*
 
 class Text {
 
-    fun init(context: RenderContext, buffers: VulkanBuffers, font: Font, maxCharacters:Int, dropShadow:Boolean)
+    fun init(context: RenderContext, font: Font, maxCharacters:Int, dropShadow:Boolean)
         : Text
     {
         assert(maxCharacters>0)
@@ -28,7 +28,7 @@ class Text {
         this.context       = context
         this.font          = font
         this.size          = font.size.toFloat()
-        initialise(buffers)
+        initialise(context.buffers)
         return this
     }
     fun destroy() {

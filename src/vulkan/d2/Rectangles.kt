@@ -18,11 +18,11 @@ import vulkan.misc.set
 
 class Rectangles {
 
-    fun init(context:RenderContext, buffers:VulkanBuffers, maxRects:Int) : Rectangles{
+    fun init(context:RenderContext, maxRects:Int) : Rectangles{
         assert(maxRects>0)
         this.context    = context
         this.maxRects   = maxRects
-        initialise(buffers)
+        initialise(context.buffers)
         return this
     }
     fun destroy() {

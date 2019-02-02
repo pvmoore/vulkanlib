@@ -174,6 +174,8 @@ private class GraphicsApplication : VulkanClient(
             }
         })
 
+        vk.shaders.setCompilerPath("/pvmoore/_tools/glslangValidator.exe")
+
         camera.resizeWindow(vk.graphics.windowSize)
 
         memory.init(vk)
@@ -196,24 +198,25 @@ private class GraphicsApplication : VulkanClient(
         val context = RenderContext(
             vk,
             device,
-            vk.graphics.renderPass
+            vk.graphics.renderPass,
+            buffers
         )
 
         quads[0]
-            .init(context, buffers, textures.get("cat.dds").image.getView(), sampler!!)
+            .init(context, textures.get("cat.dds").image.getView(), sampler!!)
             .camera(camera)
             .model(Matrix4f()
                     .translate(515f,10f,0f)
                     .scale(100f, 100f, 0f))
         quads[1]
-            .init(context, buffers, textures.get("dog.dds").image.getView(), sampler!!)
+            .init(context, textures.get("dog.dds").image.getView(), sampler!!)
             .camera(camera)
             .model(Matrix4f()
                 .translate(10f,10f,0f)
                 .scale(100f, 100f, 0f))
 
         rectangles
-            .init(context, buffers, 1000)
+            .init(context, 1000)
             .camera(camera)
             .setColour(WHITE)
             .addRectangle(
@@ -234,7 +237,7 @@ private class GraphicsApplication : VulkanClient(
         val black  = RGBA(0f, 0f, 0f, 0f)
 
         roundRectangles
-            .init(context, buffers, 100)
+            .init(context, 100)
             .camera(camera)
             .setColour(RGBA(0.3f, 0.5f, 0.7f, 1f))
             .addRectangle(Vector2f(650f,350f), Vector2f(150f,100f), 7f)
@@ -265,7 +268,7 @@ private class GraphicsApplication : VulkanClient(
                 orange,orange,
                 30f)
 
-        text.init(context, buffers, vk.graphics.fonts.get("segoeprint"), 10000, true)
+        text.init(context, vk.graphics.fonts.get("segoeprint"), 10000, true)
             .camera(camera)
             .setSize(16f)
             .setColour(WHITE*1.1f)
@@ -277,7 +280,7 @@ private class GraphicsApplication : VulkanClient(
             text.appendText("Hello there I am some text...", 10, 110+i*20)
         }
 
-        fps.init(context, buffers)
+        fps.init(context)
            .camera(camera)
     }
     private fun createSamplers() {

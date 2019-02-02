@@ -306,6 +306,8 @@ private class ComputeSimpleBufferCopy : VulkanClient(
             }
         })
 
+        vk.shaders.setCompilerPath("/pvmoore/_tools/glslangValidator.exe")
+
         memory.init(vk)
             .createOnDevice(VulkanMemory.DEVICE, 256.megabytes())
             .createStagingUpload(VulkanMemory.STAGING_UPLOAD, 32.megabytes())
@@ -463,7 +465,7 @@ private class ComputeSimpleBufferCopy : VulkanClient(
     }
     private fun createPipeline() {
         println("Creating pipeline")
-        val context = RenderContext(vk, device, vk.graphics.renderPass)
+        val context = RenderContext(vk, device, vk.graphics.renderPass, buffers)
 
         pipeline = ComputePipeline(context)
             .withDSLayouts(arrayOf(dsLayout!!))

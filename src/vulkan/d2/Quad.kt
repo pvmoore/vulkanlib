@@ -90,14 +90,13 @@ class Quad {
     private lateinit var pipeline: GraphicsPipeline
 
     fun init(context: RenderContext,
-             buffers: VulkanBuffers,
              imageView: VkImageView,
              sampler:VkSampler)
         : Quad
     {
         this.device       = context.device
         this.renderPass   = context.renderPass
-        this.bufferAllocs = BufferAllocs(buffers)
+        this.bufferAllocs = BufferAllocs(context.buffers)
 
         createDescriptors(imageView, sampler)
         createPipeline(context)
