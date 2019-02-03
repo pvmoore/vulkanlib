@@ -66,6 +66,7 @@ private class GraphicsApplication : VulkanClient(
     private val rectangles      = Rectangles()
     private val roundRectangles = RoundRectangles()
     private val circles         = Circles()
+    private val lines           = Lines()
     private val text            = Text()
     private val fps             = FPS()
     private val textures        = Textures()
@@ -93,6 +94,7 @@ private class GraphicsApplication : VulkanClient(
             rectangles.destroy()
             roundRectangles.destroy()
             circles.destroy()
+            lines.destroy()
             text.destroy()
             fps.destroy()
 
@@ -148,6 +150,7 @@ private class GraphicsApplication : VulkanClient(
         roundRectangles.beforeRenderPass(frame, res)
         text.beforeRenderPass(frame, res)
         circles.beforeRenderPass(frame, res)
+        lines.beforeRenderPass(frame, res)
         fps.beforeRenderPass(frame, res)
     }
     private fun insideRenderPass(frame: FrameInfo, res: PerFrameResource) {
@@ -156,6 +159,7 @@ private class GraphicsApplication : VulkanClient(
         roundRectangles.insideRenderPass(frame, res)
         text.insideRenderPass(frame, res)
         circles.insideRenderPass(frame, res)
+        lines.insideRenderPass(frame, res)
         fps.insideRenderPass(frame, res)
     }
     private fun initialise() {
@@ -289,6 +293,17 @@ private class GraphicsApplication : VulkanClient(
             .add(Vector2f(240f,600f), 64f)
             .edgeThickness(16f)
             .add(Vector2f(370f,600f), 128f)
+
+        lines.init(context, 10)
+            .camera(camera)
+            .thickness(1f)
+            .add(Vector2f(600f, 600f), Vector2f(800f, 610f))
+            .thickness(4f)
+            .add(Vector2f(600f, 600f), Vector2f(800f, 650f), YELLOW, GREEN)
+            .thickness(8f)
+            .add(Vector2f(600f, 600f), Vector2f(750f, 700f), WHITE, BLUE)
+            .thickness(0.7f)
+            .add(Vector2f(600f, 600f), Vector2f(660f, 500f), WHITE, RED)
 
         fps.init(context)
            .camera(camera)

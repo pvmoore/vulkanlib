@@ -2,7 +2,7 @@
 
 A Vulkan library written in Kotlin using LWJGL3
 
-![Chess](screenshots/screenshot1.png)
+![Chess](screenshots/shot2.png)
 
 ### Dependencies
 
