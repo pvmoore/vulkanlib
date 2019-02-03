@@ -4,8 +4,6 @@ import org.joml.Matrix4f
 import org.joml.Vector2f
 import org.joml.Vector4f
 import org.lwjgl.vulkan.VK10.*
-import org.lwjgl.vulkan.VkDevice
-import vulkan.api.VkRenderPass
 import vulkan.api.VkSampler
 import vulkan.api.buffer.BufferAlloc
 import vulkan.api.buffer.bindIndexBuffer
@@ -21,59 +19,8 @@ import vulkan.misc.orThrow
 import vulkan.misc.set
 
 class Quad {
-    private class UBO(val model:Matrix4f = Matrix4f(),
-                      val view:Matrix4f  = Matrix4f(),
-                      val proj:Matrix4f  = Matrix4f()) : AbsTransferable()
-
-    private class Vertices : AbsTransferableArray()
-    {
-        private class Vertex(val pos: Vector2f, val colour: Vector4f, val uv:Vector2f) : AbsTransferable()
-        private val array = arrayOf(
-            // pos                   colour        uv
-            Vertex(Vector2f(0f, 0f), Vector4f(1f), Vector2f(0f, 0f)),
-            Vertex(Vector2f(1f, 0f), Vector4f(1f), Vector2f(1f, 0f)),
-            Vertex(Vector2f(1f, 1f), Vector4f(1f), Vector2f(1f, 1f)),
-            Vertex(Vector2f(0f, 1f), Vector4f(1f), Vector2f(0f, 1f))
-        )
-        override fun getArray() = array
-
-        fun setColour(c:RGBA) {
-            array.forEach { it.colour.set(c) }
-        }
-        fun setUV(topLeft:Vector2f, bottomRight:Vector2f) {
-            array[0].uv.set(topLeft)
-            array[1].uv.set(bottomRight.x, topLeft.y)
-            array[2].uv.set(bottomRight)
-            array[3].uv.set(topLeft.x, bottomRight.y)
-        }
-    }
-    private class Indices : AbsTransferableShortArray() {
-        private val array = shortArrayOf(
-            0,1,2,
-            2,3,0
-        )
-        override fun getArray() = array
-    }
-    private inner class BufferAllocs(b: VulkanBuffers,
-
-        val stagingVertices: BufferAlloc = b.get(VulkanBuffers.STAGING_UPLOAD).allocate(vertices.size()).orThrow(),
-        val stagingIndices: BufferAlloc = b.get(VulkanBuffers.STAGING_UPLOAD).allocate(indices.size()).orThrow(),
-        val stagingUniform: BufferAlloc = b.get(VulkanBuffers.STAGING_UPLOAD).allocate(ubo.size()).orThrow(),
-
-        val vertexBuffer: BufferAlloc  = b.get(VulkanBuffers.VERTEX).allocate(vertices.size()).orThrow(),
-        val indexBuffer: BufferAlloc   = b.get(VulkanBuffers.INDEX).allocate(indices.size()).orThrow(),
-        val uniformBuffer: BufferAlloc = b.get(VulkanBuffers.UNIFORM).allocate(ubo.size()).orThrow())
-    {
-        fun free() {
-            stagingVertices.free()
-            stagingIndices.free()
-            stagingUniform.free()
-            vertexBuffer.free()
-            indexBuffer.free()
-            uniformBuffer.free()
-        }
-    }
-    //=================================================================================================
+    private lateinit var context: RenderContext
+    private lateinit var bufferAllocs: BufferAllocs
 
     private var isInitialised    = false
     private var verticesUploaded = false
@@ -81,21 +28,15 @@ class Quad {
     private val vertices         = Vertices()
     private val indices          = Indices()
     private val ubo              = UBO()
-
-    private lateinit var device: VkDevice
-    private lateinit var renderPass: VkRenderPass
-
-    private lateinit var bufferAllocs: BufferAllocs
-    private lateinit var descriptors: Descriptors
-    private lateinit var pipeline: GraphicsPipeline
+    private val pipeline         = GraphicsPipeline()
+    private val descriptors      = Descriptors()
 
     fun init(context: RenderContext,
              imageView: VkImageView,
              sampler:VkSampler)
         : Quad
     {
-        this.device       = context.device
-        this.renderPass   = context.renderPass
+        this.context      = context
         this.bufferAllocs = BufferAllocs(context.buffers)
 
         createDescriptors(imageView, sampler)
@@ -188,12 +129,13 @@ class Quad {
          *    0     uniform buffer
          *    1     image sampler
          */
-        this.descriptors = Descriptors()
+        this.descriptors
+            .init(context)
             .createLayout()
             .uniformBuffer(VK_SHADER_STAGE_VERTEX_BIT)
             .combinedImageSampler(VK_SHADER_STAGE_FRAGMENT_BIT)
             .numSets(1)
-            .build(device)
+            .build()
 
         descriptors.layout(0).createSet()
             .add(bufferAllocs.uniformBuffer)
@@ -201,12 +143,68 @@ class Quad {
             .write()
     }
     private fun createPipeline(context:RenderContext) {
-        pipeline = GraphicsPipeline(context)
+        pipeline.init(context)
             .withDSLayouts(arrayOf(descriptors.layout(0).dsLayout))
             .withShaderProperties(mapOf(), listOf())
             .withShader(VK_SHADER_STAGE_VERTEX_BIT,   "Quad.vert")
             .withShader(VK_SHADER_STAGE_FRAGMENT_BIT, "Quad.frag")
             .withVertexInputState(vertices.elementInstance(), VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .build()
+    }
+
+    //=================================================================================================
+
+    private class UBO(val model:Matrix4f = Matrix4f(),
+                      val view:Matrix4f  = Matrix4f(),
+                      val proj:Matrix4f  = Matrix4f()) : AbsTransferable()
+
+    private class Vertices : AbsTransferableArray()
+    {
+        private class Vertex(val pos: Vector2f, val colour: Vector4f, val uv:Vector2f) : AbsTransferable()
+        private val array = arrayOf(
+            // pos                   colour        uv
+            Vertex(Vector2f(0f, 0f), Vector4f(1f), Vector2f(0f, 0f)),
+            Vertex(Vector2f(1f, 0f), Vector4f(1f), Vector2f(1f, 0f)),
+            Vertex(Vector2f(1f, 1f), Vector4f(1f), Vector2f(1f, 1f)),
+            Vertex(Vector2f(0f, 1f), Vector4f(1f), Vector2f(0f, 1f))
+        )
+        override fun getArray() = array
+
+        fun setColour(c:RGBA) {
+            array.forEach { it.colour.set(c) }
+        }
+        fun setUV(topLeft:Vector2f, bottomRight:Vector2f) {
+            array[0].uv.set(topLeft)
+            array[1].uv.set(bottomRight.x, topLeft.y)
+            array[2].uv.set(bottomRight)
+            array[3].uv.set(topLeft.x, bottomRight.y)
+        }
+    }
+    private class Indices : AbsTransferableShortArray() {
+        private val array = shortArrayOf(
+            0,1,2,
+            2,3,0
+        )
+        override fun getArray() = array
+    }
+    private inner class BufferAllocs(
+        b: VulkanBuffers,
+
+        val stagingVertices: BufferAlloc = b.get(VulkanBuffers.STAGING_UPLOAD).allocate(vertices.size()).orThrow(),
+        val stagingIndices: BufferAlloc = b.get(VulkanBuffers.STAGING_UPLOAD).allocate(indices.size()).orThrow(),
+        val stagingUniform: BufferAlloc = b.get(VulkanBuffers.STAGING_UPLOAD).allocate(ubo.size()).orThrow(),
+
+        val vertexBuffer: BufferAlloc  = b.get(VulkanBuffers.VERTEX).allocate(vertices.size()).orThrow(),
+        val indexBuffer: BufferAlloc   = b.get(VulkanBuffers.INDEX).allocate(indices.size()).orThrow(),
+        val uniformBuffer: BufferAlloc = b.get(VulkanBuffers.UNIFORM).allocate(ubo.size()).orThrow())
+    {
+        fun free() {
+            stagingVertices.free()
+            stagingIndices.free()
+            stagingUniform.free()
+            vertexBuffer.free()
+            indexBuffer.free()
+            uniformBuffer.free()
+        }
     }
 }

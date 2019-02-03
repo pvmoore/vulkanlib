@@ -106,13 +106,12 @@ private class ComputeSimpleBufferCopy : VulkanClient(
     private var computeCommandBuffer:VkCommandBuffer? = null
     private var computeCompleteSemaphore:VkSemaphore? = null
 
-    private var pipeline:ComputePipeline? = null
-
     private val uploader:StagingTransfer by lazy { vk.createStagingTransfer(buffers.get(VulkanBuffers.STAGING_UPLOAD)) }
 
     private val uploadByteBuffer = ByteBuffer.allocateDirect(4.megabytes())
                                              .order(ByteOrder.nativeOrder())
 
+    private val pipeline      = ComputePipeline()
     private val ubo           = UBO(1f, 2f)
     private val specConstants = SpecConstants(2).set(0, 5f).set(1, 7f)
     private val pushConstants = PushConstants(2)
@@ -467,7 +466,7 @@ private class ComputeSimpleBufferCopy : VulkanClient(
         println("Creating pipeline")
         val context = RenderContext(vk, device, vk.graphics.renderPass, buffers)
 
-        pipeline = ComputePipeline(context)
+        pipeline.init(context)
             .withDSLayouts(arrayOf(dsLayout!!))
             .withShader("ComputeSimpleBufferCopy.comp", specConstants)
             .withPushConstants(firstIndex = 0, count = pushConstants.count)

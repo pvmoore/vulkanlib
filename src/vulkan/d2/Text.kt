@@ -18,6 +18,23 @@ import vulkan.font.Font
 import vulkan.misc.*
 
 class Text {
+    private lateinit var context:RenderContext
+    private lateinit var buffers: BufferAllocs
+    private lateinit var sampler: VkSampler
+    private lateinit var font:Font
+
+    private var maxCharacters   = 0
+    private var dropShadow      = true
+    private var size            = 0f
+    private val pushConstants   = PushConstants(1).set(0, 0f)
+    private val vertices        = Vertices()
+    private val ubo             = UBO()
+    private val pipeline        = GraphicsPipeline()
+    private val descriptors     = Descriptors()
+    private val textChunks      = ArrayList<TextChunk>()
+    private var colour: RGBA    = WHITE
+    private var uboChanged      = true
+    private var verticesChanged = true
 
     fun init(context: RenderContext, font: Font, maxCharacters:Int, dropShadow:Boolean)
         : Text
@@ -28,7 +45,8 @@ class Text {
         this.context       = context
         this.font          = font
         this.size          = font.size.toFloat()
-        initialise(context.buffers)
+
+        initialise()
         return this
     }
     fun destroy() {
@@ -148,87 +166,10 @@ class Text {
             draw(vertices.numCharacters, 1, 0, 0) // numCharacters points
         }
     }
-    //=======================================================================================================
-    //     _____        _____        _____      __      __                   _______      ______
-    //    |  __ \      |  __ \      |_   _|     \ \    / /        /\        |__   __|    |  ____|
-    //    | |__) |     | |__) |       | |        \ \  / /        /  \          | |       | |__
-    //    |  ___/      |  _  /        | |         \ \/ /        / /\ \         | |       |  __|
-    //    | |          | | \ \       _| |_         \  /        / ____ \        | |       | |____
-    //    |_|          |_|  \_\     |_____|         \/        /_/    \_\       |_|       |______|
-    //
-    //=======================================================================================================
-    private inner class BufferAllocs(b: VulkanBuffers) {
-        var stagingVertices: BufferAlloc = b.get(VulkanBuffers.STAGING_UPLOAD).allocate(vertices.vertexSize * maxCharacters).orThrow()
-        val stagingUniform: BufferAlloc = b.get(VulkanBuffers.STAGING_UPLOAD).allocate(ubo.size()).orThrow()
-
-        val vertexBuffer: BufferAlloc = b.get(VulkanBuffers.VERTEX).allocate(vertices.vertexSize * maxCharacters).orThrow()
-        val uniformBuffer: BufferAlloc = b.get(VulkanBuffers.UNIFORM).allocate(ubo.size()).orThrow()
-
-        fun free() {
-            stagingVertices.free()
-            stagingUniform.free()
-            vertexBuffer.free()
-            uniformBuffer.free()
-        }
-    }
-    /** Each vertex is a single POINT */
-    private class Vertices : AbsTransferableArray() {
-        private class Vertex(
-            val pos    : Vector4f,
-            val uvs    : Vector4f,
-            val colour : Vector4f,
-            var size   : Float
-        ):AbsTransferable()
-
-        private val array = ArrayList<Vertex>()
-
-        override fun getArray()        = array.toTypedArray()
-        override fun elementInstance() = Vertex(Vector4f(), Vector4f(), Vector4f(), 0f)
-
-        val numCharacters get() = array.size
-        val vertexSize          = 13 * 4
-
-        fun clear() {
-            array.clear()
-        }
-        fun add(pos:Vector4f, uvs:Vector4f, colour:RGBA, size:Float) {
-            array.add(Vertex(pos, uvs, colour.toVector4f(), size))
-        }
-    }
-    private class UBO(val viewProj: Matrix4f = Matrix4f(),
-                      val dsColour:Vector4f  = Vector4f(0f,0f,0f, 0.75f),
-                      val dsOffset:Vector2f  = Vector2f(-0.0025f, 0.0025f),
-                      val _pad:Vector2f      = Vector2f()) : AbsTransferable()
-
-    private class TextChunk(
-        var text:String,
-        var colour:RGBA,
-        var size:Float,
-        var x:Int,
-        var y:Int
-    )
     //=====================================================================================
-    private lateinit var context:RenderContext
-    private lateinit var buffers: BufferAllocs
-    private lateinit var descriptors: Descriptors
-    private lateinit var pipeline: GraphicsPipeline
-    private lateinit var sampler: VkSampler
-    private lateinit var font:Font
+    private fun initialise() {
 
-    private var maxCharacters   = 0
-    private var dropShadow      = true
-    private var size            = 0f
-    private val pushConstants   = PushConstants(1).set(0, 0f)
-    private val vertices        = Vertices()
-    private val ubo             = UBO()
-    private val textChunks      = ArrayList<TextChunk>()
-    private var colour: RGBA    = WHITE
-    private var uboChanged      = true
-    private var verticesChanged = true
-
-    private fun initialise(vBuffers : VulkanBuffers) {
-
-        buffers = BufferAllocs(vBuffers)
+        buffers = BufferAllocs(context.buffers)
 
         sampler = context.device.createSampler { info-> }
 
@@ -236,12 +177,13 @@ class Text {
          * Bindings:
          *    0     uniform buffer
          */
-        descriptors = Descriptors()
+        descriptors
+            .init(context)
             .createLayout()
             .uniformBuffer(VK_SHADER_STAGE_GEOMETRY_BIT or VK_SHADER_STAGE_FRAGMENT_BIT)
             .combinedImageSampler(VK_SHADER_STAGE_FRAGMENT_BIT)
             .numSets(1)
-            .build(context.device)
+            .build()
 
         descriptors
             .layout(0)
@@ -252,14 +194,14 @@ class Text {
                  sampler)
             .write()
 
-        pipeline = GraphicsPipeline(context)
+        pipeline.init(context)
             .withVertexInputState(vertices.elementInstance(), VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
             .withDSLayouts(arrayOf(descriptors.layout(0).dsLayout))
             .withShader(VK_SHADER_STAGE_VERTEX_BIT, "Text.vert")
             .withShader(VK_SHADER_STAGE_GEOMETRY_BIT, "Text.geom")
             .withShader(VK_SHADER_STAGE_FRAGMENT_BIT, "Text.frag")
             .withStandardColorBlend()
-            .withPushConstants(firstIndex = 0, count = 1)
+            .withPushConstants(firstIndex = 0, count = 1, stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT)
             .build()
     }
     private fun updateVertices(res:PerFrameResource) {
@@ -321,4 +263,56 @@ class Text {
             vertices.writeTo(bb)
         }
     }
+
+    //=======================================================================================================
+    private inner class BufferAllocs(b: VulkanBuffers) {
+        var stagingVertices: BufferAlloc = b.get(VulkanBuffers.STAGING_UPLOAD).allocate(vertices.vertexSize * maxCharacters).orThrow()
+        val stagingUniform: BufferAlloc = b.get(VulkanBuffers.STAGING_UPLOAD).allocate(ubo.size()).orThrow()
+
+        val vertexBuffer: BufferAlloc = b.get(VulkanBuffers.VERTEX).allocate(vertices.vertexSize * maxCharacters).orThrow()
+        val uniformBuffer: BufferAlloc = b.get(VulkanBuffers.UNIFORM).allocate(ubo.size()).orThrow()
+
+        fun free() {
+            stagingVertices.free()
+            stagingUniform.free()
+            vertexBuffer.free()
+            uniformBuffer.free()
+        }
+    }
+    /** Each vertex is a single POINT */
+    private class Vertices : AbsTransferableArray() {
+        private class Vertex(
+            val pos    : Vector4f,
+            val uvs    : Vector4f,
+            val colour : Vector4f,
+            var size   : Float
+        ):AbsTransferable()
+
+        private val array = ArrayList<Vertex>()
+
+        override fun getArray()        = array.toTypedArray()
+        override fun elementInstance() = Vertex(Vector4f(), Vector4f(), Vector4f(), 0f)
+
+        val numCharacters get() = array.size
+        val vertexSize          = 13 * 4
+
+        fun clear() {
+            array.clear()
+        }
+        fun add(pos:Vector4f, uvs:Vector4f, colour:RGBA, size:Float) {
+            array.add(Vertex(pos, uvs, colour.toVector4f(), size))
+        }
+    }
+    private class UBO(val viewProj: Matrix4f = Matrix4f(),
+                      val dsColour:Vector4f  = Vector4f(0f,0f,0f, 0.75f),
+                      val dsOffset:Vector2f  = Vector2f(-0.0025f, 0.0025f),
+                      val _pad:Vector2f      = Vector2f()) : AbsTransferable()
+
+    private class TextChunk(
+        var text:String,
+        var colour:RGBA,
+        var size:Float,
+        var x:Int,
+        var y:Int
+    )
 }

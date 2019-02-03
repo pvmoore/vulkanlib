@@ -11,6 +11,7 @@ class FPS(private val suffix:String = " fps",
           private var y:Int = -1)
 {
     private lateinit var context:RenderContext
+
     private val text = Text()
 
     fun init(context:RenderContext) : FPS {

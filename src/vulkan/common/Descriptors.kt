@@ -43,8 +43,17 @@ import vulkan.misc.VkShaderStageFlags
  *
  */
 class Descriptors {
+    private lateinit var context:RenderContext
+    internal lateinit var pool : VkDescriptorPool
+
+    private val layouts = ArrayList<Layout>()
+
     fun layout(index:Int) = layouts[index]
 
+    fun init(context : RenderContext) : Descriptors {
+        this.context = context
+        return this
+    }
     fun destroy() {
         layouts.forEach {
             pool.freeSets(it.sets.map { it.set }.toTypedArray())
@@ -57,30 +66,26 @@ class Descriptors {
         layouts.add(l)
         return l
     }
-    fun build(device : VkDevice) : Descriptors {
-        this.device = device
+    fun build() : Descriptors {
         createPool()
         createLayouts()
         return this
     }
 
     //=================================================================================================
-    internal lateinit var device : VkDevice
-    internal lateinit var pool : VkDescriptorPool
-    private val layouts = ArrayList<Layout>()
-
     internal data class Binding(val type:VkDescriptorType, val shaderStages:VkShaderStageFlags)
 
     inner class Layout {
         internal val bindings = ArrayList<Binding>()
         internal var numSets:Int = 0
-        internal lateinit var dsLayout: VkDescriptorSetLayout
         internal val sets = ArrayList<Set>()
+
+        lateinit var dsLayout: VkDescriptorSetLayout
 
         fun set(index:Int): VkDescriptorSet = sets[index].set
 
         fun createSet() : Set {
-            val set = Set(device, this, pool.allocSet(dsLayout))
+            val set = Set(context.device, this, pool.allocSet(dsLayout))
             sets.add(set)
             return set
         }
@@ -205,7 +210,7 @@ class Descriptors {
         //println("types = ${types.map { it.key.translateVkDescriptorType() +":" + it.value} }")
         //println("maxSets = $maxSets")
 
-        pool = device.createDescriptorPool(types.size) { info, sizes ->
+        pool = context.device.createDescriptorPool(types.size) { info, sizes ->
             info.maxSets(maxSets)
 
             types.entries.forEachIndexed { i, e->
@@ -219,7 +224,7 @@ class Descriptors {
     private fun createLayouts() {
 
         layouts.forEach { layout->
-            layout.dsLayout = device.createDescriptorSetLayout(layout.bindings.size) { bindings ->
+            layout.dsLayout = context.device.createDescriptorSetLayout(layout.bindings.size) { bindings ->
 
                 layout.bindings.forEachIndexed { i, d->
                     bindings[i].run {

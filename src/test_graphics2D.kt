@@ -15,7 +15,6 @@ import vulkan.d2.*
 import vulkan.misc.*
 import vulkan.texture.Textures
 
-
 /**
  * Vulkan graphics example.
  */
@@ -57,6 +56,27 @@ private class GraphicsApplication : VulkanClient(
     enableVsync             = false,
     prefNumSwapChainBuffers = 2)
 {
+    private lateinit var vk: VulkanApplication
+    private lateinit var device: VkDevice
+
+    private val memory          = VulkanMemory()
+    private val buffers         = VulkanBuffers()
+    private val camera          = Camera2D()
+    private val quads           = arrayOf(Quad(), Quad())
+    private val rectangles      = Rectangles()
+    private val roundRectangles = RoundRectangles()
+    private val circles         = Circles()
+    private val text            = Text()
+    private val fps             = FPS()
+    private val textures        = Textures()
+    private val clearColour     = VkClearValue.calloc(1).color {
+        it.float32(0, 0.2f)
+          .float32(1, 0.0f)
+          .float32(2, 0.0f)
+          .float32(3, 1.0f)
+    }
+    private var sampler:VkSampler? = null
+
     override fun enableFeatures(f : VkPhysicalDeviceFeatures) {
         f.geometryShader(true)
     }
@@ -72,6 +92,7 @@ private class GraphicsApplication : VulkanClient(
             quads.forEach { q->q.destroy()}
             rectangles.destroy()
             roundRectangles.destroy()
+            circles.destroy()
             text.destroy()
             fps.destroy()
 
@@ -121,39 +142,12 @@ private class GraphicsApplication : VulkanClient(
         )
     }
     //=====================================================================================================
-    //   _____      _            _
-    //  |  __ \    (_)          | |
-    //  | |__) | __ ___   ____ _| |_ ___
-    //  |  ___/ '__| \ \ / / _` | __/ _ \
-    //  | |   | |  | |\ V / (_| | | |  _/
-    //  |_|   |_|  |_| \_/ \__,_| \__\__|
-    //
-    //=====================================================================================================
-    private lateinit var vk: VulkanApplication
-    private lateinit var device: VkDevice
-    private val memory          = VulkanMemory()
-    private val buffers         = VulkanBuffers()
-    private val camera          = Camera2D()
-    private val quads           = arrayOf(Quad(), Quad())
-    private val rectangles      = Rectangles()
-    private val roundRectangles = RoundRectangles()
-    private val text            = Text()
-    private val fps             = FPS()
-    private val textures        = Textures()
-    private val clearColour     = VkClearValue.calloc(1).color {
-        it.float32(0, 0.2f)
-          .float32(1, 0.0f)
-          .float32(2, 0.0f)
-          .float32(3, 1.0f)
-    }
-
-    private var sampler:VkSampler? = null
-
     private fun beforeRenderPass(frame: FrameInfo, res: PerFrameResource) {
         quads.forEach { q-> q.beforeRenderPass(frame, res) }
         rectangles.beforeRenderPass(frame, res)
         roundRectangles.beforeRenderPass(frame, res)
         text.beforeRenderPass(frame, res)
+        circles.beforeRenderPass(frame, res)
         fps.beforeRenderPass(frame, res)
     }
     private fun insideRenderPass(frame: FrameInfo, res: PerFrameResource) {
@@ -161,6 +155,7 @@ private class GraphicsApplication : VulkanClient(
         rectangles.insideRenderPass(frame, res)
         roundRectangles.insideRenderPass(frame, res)
         text.insideRenderPass(frame, res)
+        circles.insideRenderPass(frame, res)
         fps.insideRenderPass(frame, res)
     }
     private fun initialise() {
@@ -279,6 +274,21 @@ private class GraphicsApplication : VulkanClient(
             text.setColour(RGBA(i/19.0f,0.5f+i/40.0f,1f,1f)*1.1f)
             text.appendText("Hello there I am some text...", 10, 110+i*20)
         }
+
+        circles.init(context, 10)
+            .camera(camera)
+            .edgeColour(WHITE)
+            .fillColour(RED)
+            .edgeThickness(1.5f)
+            .add(Vector2f(100f,600f), 4f)
+            .add(Vector2f(110f,600f), 8f)
+            .add(Vector2f(130f,600f), 16f)
+            .edgeThickness(4f)
+            .add(Vector2f(170f,600f), 32f)
+            .edgeThickness(8f)
+            .add(Vector2f(240f,600f), 64f)
+            .edgeThickness(16f)
+            .add(Vector2f(370f,600f), 128f)
 
         fps.init(context)
            .camera(camera)

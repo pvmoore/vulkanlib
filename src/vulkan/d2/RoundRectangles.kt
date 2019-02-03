@@ -17,11 +17,25 @@ import vulkan.misc.orThrow
 import vulkan.misc.set
 
 class RoundRectangles {
+    private lateinit var context:RenderContext
+    private lateinit var buffers: BufferAllocs
+
+    private var maxRects = 0
+
+    private val vertices        = Vertices()
+    private val ubo             = UBO()
+    private val pipeline        = GraphicsPipeline()
+    private val descriptors     = Descriptors()
+    private var colour:RGBA     = WHITE
+    private var uboChanged      = true
+    private var verticesChanged = true
+
     fun init(context: RenderContext, maxRects:Int) : RoundRectangles {
         assert(maxRects>0)
         this.context    = context
         this.maxRects   = maxRects
-        initialise(context.buffers)
+
+        initialise()
         return this
     }
     fun destroy() {
@@ -95,14 +109,51 @@ class RoundRectangles {
             )
         }
     }
-    //=======================================================================================================
-    //     _____        _____        _____      __      __                   _______      ______
-    //    |  __ \      |  __ \      |_   _|     \ \    / /        /\        |__   __|    |  ____|
-    //    | |__) |     | |__) |       | |        \ \  / /        /  \          | |       | |__
-    //    |  ___/      |  _  /        | |         \ \/ /        / /\ \         | |       |  __|
-    //    | |          | | \ \       _| |_         \  /        / ____ \        | |       | |____
-    //    |_|          |_|  \_\     |_____|         \/        /_/    \_\       |_|       |______|
-    //
+    //=====================================================================================
+    private fun initialise() {
+
+        buffers = BufferAllocs(context.buffers)
+
+        /**
+         * Bindings:
+         *    0     uniform buffer
+         */
+        descriptors
+            .init(context)
+            .createLayout()
+            .uniformBuffer(VK_SHADER_STAGE_GEOMETRY_BIT)
+            .numSets(1)
+            .build()
+
+        descriptors
+            .layout(0)
+            .createSet()
+            .add(buffers.uniformBuffer)
+            .write()
+
+        pipeline.init(context)
+            .withVertexInputState(vertices.elementInstance(), VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
+            .withDSLayouts(arrayOf(descriptors.layout(0).dsLayout))
+            .withShader(VK_SHADER_STAGE_VERTEX_BIT,   "RoundRectangles.vert")
+            .withShader(VK_SHADER_STAGE_GEOMETRY_BIT, "RoundRectangles.geom")
+            .withShader(VK_SHADER_STAGE_FRAGMENT_BIT, "RoundRectangles.frag")
+            .withStandardColorBlend()
+            .build()
+    }
+    private fun updateVertices(res:PerFrameResource) {
+        vertices.transfer(
+            res.adhocCB,
+            buffers.stagingVertices.rangeOf(0, vertices.size()),
+            buffers.vertexBuffer.rangeOf(0,vertices.size()))
+
+        verticesChanged = false
+        log.info("Updated ${vertices.numRectangles} rectangles")
+    }
+    private fun updateUBO(res : PerFrameResource) {
+        ubo.transfer(res.adhocCB, buffers.stagingUniform, buffers.uniformBuffer)
+        uboChanged = false
+    }
+
     //=======================================================================================================
     private inner class BufferAllocs(b: VulkanBuffers) {
         var stagingVertices: BufferAlloc = b.get(VulkanBuffers.STAGING_UPLOAD).allocate(vertices.vertexSize * maxRects).orThrow()
@@ -164,60 +215,4 @@ class RoundRectangles {
         }
     }
     private class UBO(val viewProj: Matrix4f = Matrix4f()) : AbsTransferable()
-    //=====================================================================================
-    private lateinit var context:RenderContext
-    private lateinit var buffers: BufferAllocs
-    private lateinit var descriptors: Descriptors
-    private lateinit var pipeline: GraphicsPipeline
-    private var maxRects = 0
-
-    private val vertices        = Vertices()
-    private val ubo             = UBO()
-    private var colour:RGBA     = WHITE
-    private var uboChanged      = true
-    private var verticesChanged = true
-
-
-    private fun initialise(vBuffers : VulkanBuffers) {
-
-        buffers = BufferAllocs(vBuffers)
-
-        /**
-         * Bindings:
-         *    0     uniform buffer
-         */
-        descriptors = Descriptors()
-            .createLayout()
-            .uniformBuffer(VK_SHADER_STAGE_GEOMETRY_BIT)
-            .numSets(1)
-            .build(context.device)
-
-        descriptors
-            .layout(0)
-            .createSet()
-            .add(buffers.uniformBuffer)
-            .write()
-
-        pipeline = GraphicsPipeline(context)
-            .withVertexInputState(vertices.elementInstance(), VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
-            .withDSLayouts(arrayOf(descriptors.layout(0).dsLayout))
-            .withShader(VK_SHADER_STAGE_VERTEX_BIT,   "RoundRectangles.vert")
-            .withShader(VK_SHADER_STAGE_GEOMETRY_BIT, "RoundRectangles.geom")
-            .withShader(VK_SHADER_STAGE_FRAGMENT_BIT, "RoundRectangles.frag")
-            .withStandardColorBlend()
-            .build()
-    }
-    private fun updateVertices(res:PerFrameResource) {
-        vertices.transfer(
-            res.adhocCB,
-            buffers.stagingVertices.rangeOf(0, vertices.size()),
-            buffers.vertexBuffer.rangeOf(0,vertices.size()))
-
-        verticesChanged = false
-        log.info("Updated ${vertices.numRectangles} rectangles")
-    }
-    private fun updateUBO(res : PerFrameResource) {
-        ubo.transfer(res.adhocCB, buffers.stagingUniform, buffers.uniformBuffer)
-        uboChanged = false
-    }
 }

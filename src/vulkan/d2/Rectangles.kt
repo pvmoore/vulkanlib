@@ -17,12 +17,25 @@ import vulkan.misc.orThrow
 import vulkan.misc.set
 
 class Rectangles {
+    private lateinit var context:RenderContext
+    private lateinit var buffers:BufferAllocs
+
+    private val vertices        = Vertices()
+    private val ubo             = UBO()
+    private val pipeline        = GraphicsPipeline()
+    private val descriptors     = Descriptors()
+
+    private var colour:RGBA     = WHITE
+    private var maxRects        = 0
+    private var verticesChanged = true
+    private var uboChanged      = true
 
     fun init(context:RenderContext, maxRects:Int) : Rectangles{
         assert(maxRects>0)
         this.context    = context
         this.maxRects   = maxRects
-        initialise(context.buffers)
+
+        initialise()
         return this
     }
     fun destroy() {
@@ -105,14 +118,49 @@ class Rectangles {
             )
         }
     }
-    //=======================================================================================================
-    //     _____        _____        _____      __      __                   _______      ______
-    //    |  __ \      |  __ \      |_   _|     \ \    / /        /\        |__   __|    |  ____|
-    //    | |__) |     | |__) |       | |        \ \  / /        /  \          | |       | |__
-    //    |  ___/      |  _  /        | |         \ \/ /        / /\ \         | |       |  __|
-    //    | |          | | \ \       _| |_         \  /        / ____ \        | |       | |____
-    //    |_|          |_|  \_\     |_____|         \/        /_/    \_\       |_|       |______|
-    //
+    //============================================================================================
+    private fun initialise() {
+
+        buffers = BufferAllocs(context.buffers)
+
+        /**
+         * Bindings:
+         *    0     uniform buffer
+         */
+        descriptors
+            .init(context)
+            .createLayout()
+            .uniformBuffer(VK_SHADER_STAGE_VERTEX_BIT)
+            .numSets(1)
+            .build()
+
+        descriptors
+            .layout(0)
+                .createSet()
+                .add(buffers.uniformBuffer)
+            .write()
+
+        pipeline.init(context)
+            .withVertexInputState(vertices.elementInstance(), VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+            .withDSLayouts(arrayOf(descriptors.layout(0).dsLayout))
+            .withShader(VK_SHADER_STAGE_VERTEX_BIT,   "Rectangles.vert")
+            .withShader(VK_SHADER_STAGE_FRAGMENT_BIT, "Rectangles.frag")
+            .build()
+    }
+    private fun updateVertices(res:PerFrameResource) {
+        vertices.transfer(
+            res.adhocCB,
+            buffers.stagingVertices.rangeOf(0, vertices.size()),
+            buffers.vertexBuffer.rangeOf(0,vertices.size()))
+        verticesChanged = false
+
+        log.info("Updated ${vertices.numRectangles} rectangles")
+    }
+    private fun updateUBO(res : PerFrameResource) {
+        ubo.transfer(res.adhocCB, buffers.stagingUniform, buffers.uniformBuffer)
+        uboChanged = false
+    }
+
     //=======================================================================================================
     private inner class BufferAllocs(b: VulkanBuffers) {
         var stagingVertices: BufferAlloc = b.get(VulkanBuffers.STAGING_UPLOAD).allocate(vertices.vertexSize * 6 * maxRects).orThrow()
@@ -166,58 +214,4 @@ class Rectangles {
         }
     }
     private class UBO(val viewProj: Matrix4f = Matrix4f()) : AbsTransferable()
-    //====================================================================================================
-    private lateinit var context:RenderContext
-    private lateinit var buffers:BufferAllocs
-    private lateinit var descriptors:Descriptors
-    private lateinit var pipeline: GraphicsPipeline
-
-    private val vertices        = Vertices()
-    private val ubo             = UBO()
-
-    private var colour:RGBA     = WHITE
-    private var maxRects        = 0
-    private var verticesChanged = true
-    private var uboChanged      = true
-
-    private fun initialise(vbuffers:VulkanBuffers) {
-
-        buffers = BufferAllocs(vbuffers)
-
-        /**
-         * Bindings:
-         *    0     uniform buffer
-         */
-        descriptors = Descriptors()
-            .createLayout()
-            .uniformBuffer(VK_SHADER_STAGE_VERTEX_BIT)
-            .numSets(1)
-            .build(context.device)
-
-        descriptors
-            .layout(0)
-                .createSet()
-                .add(buffers.uniformBuffer)
-            .write()
-
-        pipeline = GraphicsPipeline(context)
-            .withVertexInputState(vertices.elementInstance(), VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
-            .withDSLayouts(arrayOf(descriptors.layout(0).dsLayout))
-            .withShader(VK_SHADER_STAGE_VERTEX_BIT,   "Rectangles.vert")
-            .withShader(VK_SHADER_STAGE_FRAGMENT_BIT, "Rectangles.frag")
-            .build()
-    }
-    private fun updateVertices(res:PerFrameResource) {
-        vertices.transfer(
-            res.adhocCB,
-            buffers.stagingVertices.rangeOf(0, vertices.size()),
-            buffers.vertexBuffer.rangeOf(0,vertices.size()))
-        verticesChanged = false
-
-        log.info("Updated ${vertices.numRectangles} rectangles")
-    }
-    private fun updateUBO(res : PerFrameResource) {
-        ubo.transfer(res.adhocCB, buffers.stagingUniform, buffers.uniformBuffer)
-        uboChanged = false
-    }
 }

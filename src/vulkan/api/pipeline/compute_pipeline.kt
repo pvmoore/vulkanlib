@@ -4,7 +4,7 @@ import org.lwjgl.system.MemoryUtil.memFree
 import org.lwjgl.system.MemoryUtil.memUTF8
 import org.lwjgl.vulkan.VK10.VK_SHADER_STAGE_COMPUTE_BIT
 import org.lwjgl.vulkan.VK10.VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO
-import org.lwjgl.vulkan.VkDevice
+
 import org.lwjgl.vulkan.VkPipelineShaderStageCreateInfo
 import org.lwjgl.vulkan.VkPushConstantRange
 import org.lwjgl.vulkan.VkSpecializationInfo
@@ -13,8 +13,8 @@ import vulkan.common.RenderContext
 import vulkan.common.SpecConstants
 import kotlin.test.assertNull
 
-class ComputePipeline(private val context:RenderContext) {
-    private val device: VkDevice = context.vk.device
+class ComputePipeline() {
+    private lateinit var context:RenderContext
 
     private var descriptorSetLayouts:Array<VkDescriptorSetLayout>? = null
     private var pushConstantRanges:VkPushConstantRange.Buffer? = null
@@ -24,8 +24,9 @@ class ComputePipeline(private val context:RenderContext) {
     lateinit var pipeline: VkPipeline
     lateinit var layout: VkPipelineLayout
 
-    init{
-
+    fun init(context:RenderContext) : ComputePipeline {
+        this.context = context
+        return this
     }
     fun destroy() {
         println("Destroying ComputePipeline")
@@ -79,7 +80,7 @@ class ComputePipeline(private val context:RenderContext) {
         assert(descriptorSetLayouts!!.isNotEmpty())
 
         /** Pipeline Layout */
-        layout = device.createPipelineLayout(
+        layout = context.device.createPipelineLayout(
             descriptorSetLayouts!!,
             pushConstantRanges
         )
@@ -97,7 +98,7 @@ class ComputePipeline(private val context:RenderContext) {
             .pSpecializationInfo(specialisationInfo)
 
 
-        pipeline = device.createComputePipeline(layout, shaderStage)
+        pipeline = context.device.createComputePipeline(layout, shaderStage)
 
         memFree(pName)
         shaderStage.free()

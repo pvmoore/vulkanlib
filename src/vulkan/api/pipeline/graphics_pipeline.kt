@@ -13,9 +13,8 @@ import vulkan.misc.VkShaderStageFlags
 import vulkan.misc.string
 import kotlin.test.assertNull
 
-class GraphicsPipeline(private val context: RenderContext)
-{
-    private val device: VkDevice = context.device
+class GraphicsPipeline {
+    private lateinit var context:RenderContext
 
     private var descriptorSetLayouts:Array<VkDescriptorSetLayout>?  = null
     private var pushConstantRanges:VkPushConstantRange.Buffer?      = null
@@ -58,8 +57,9 @@ class GraphicsPipeline(private val context: RenderContext)
     lateinit var pipeline: VkPipeline
     lateinit var layout: VkPipelineLayout
 
-    init{
-
+    fun init(context: RenderContext) : GraphicsPipeline {
+        this.context = context
+        return this
     }
     fun destroy() {
         vertexInputState.free()
@@ -204,11 +204,11 @@ class GraphicsPipeline(private val context: RenderContext)
     }
 
     /** Simple constant range */
-    fun withPushConstants(firstIndex:Int, count:Int):GraphicsPipeline {
+    fun withPushConstants(firstIndex:Int, count:Int, stageFlags:VkShaderStageFlags):GraphicsPipeline {
         assertNull(pushConstantRanges)
 
         pushConstantRanges = VkPushConstantRange.calloc(1)
-            .stageFlags(VK_SHADER_STAGE_COMPUTE_BIT)
+            .stageFlags(stageFlags)
             .offset(firstIndex*4)
             .size(count*4)
 
@@ -219,7 +219,7 @@ class GraphicsPipeline(private val context: RenderContext)
         assert(vertexInputState.vertexAttributeDescriptionCount()>0)
 
         /** Pipeline Layout */
-        layout = device.createPipelineLayout(
+        layout = context.device.createPipelineLayout(
             descriptorSetLayouts!!,
             pushConstantRanges
         )
@@ -272,7 +272,7 @@ class GraphicsPipeline(private val context: RenderContext)
                 }
             }
 
-            pipeline = device.createGraphicsPipeline(
+            pipeline = context.device.createGraphicsPipeline(
                 layout,
                 context.renderPass,
                 shaderStages,
