@@ -190,16 +190,16 @@ private class GraphicsApplication : VulkanClient(
             .createUniformBuffer(VulkanBuffers.UNIFORM, memory.get(VulkanMemory.SHARED), 1.megabytes())
         log.info("$buffers")
 
-        textures.init(vk, 16.megabytes())
-
-        createSamplers()
-
         val context = RenderContext(
             vk,
             device,
             vk.graphics.renderPass,
             buffers
         )
+
+        textures.init(vk, 16.megabytes())
+
+        createSamplers()
 
         quads[0]
             .init(context, textures.get("cat.dds").image.getView(), sampler!!)

@@ -22,13 +22,13 @@ class Lines {
 
     private val descriptors     = Descriptors()
     private val pipeline        = GraphicsPipeline()
-    private val ubo             = UBO(Matrix4f())
+    private val ubo             = UBO()
     private val points          = Points()
 
     private var uboStale        = true
     private var pointsStale     = true
     private var colour: RGBA    = WHITE
-    private var thickness       = 2f
+    private var thickness       = 1.5f
 
     private var stagingUniform  : BufferAlloc? = null
     private var uniformBuffer   : BufferAlloc? = null
@@ -163,7 +163,7 @@ class Lines {
     }
     private fun updatePoints(frame: FrameInfo, res: PerFrameResource) {
         points.transfer(res.adhocCB, stagingVertices!!.rangeOf(0, points.size()),
-                        verticesBuffer!!.rangeOf(0, points.size()))
+                                     verticesBuffer!!.rangeOf(0, points.size()))
         pointsStale = false
     }
     //==========================================================================================
@@ -191,5 +191,5 @@ class Lines {
             array.clear()
         }
     }
-    private class UBO(val viewProj: Matrix4f) : AbsTransferable()
+    private class UBO(val viewProj:Matrix4f = Matrix4f()) : AbsTransferable()
 }

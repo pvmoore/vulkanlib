@@ -100,3 +100,23 @@ abstract class AbsTransferableShortArray : AbsTransferable() {
         getArray().forEach { dest.putShort(it) }
     }
 }
+
+abstract class AbsTransferableIntArray : AbsTransferable() {
+    protected abstract fun getArray():IntArray
+
+    override fun size():Int = 4 * getArray().size
+
+    override fun writeTo(dest: ByteBuffer) {
+        getArray().forEach { dest.putInt(it) }
+    }
+}
+
+abstract class AbsTransferableFloatArray : AbsTransferable() {
+    protected abstract fun getArray():FloatArray
+
+    override fun size():Int = 4 * getArray().size
+
+    override fun writeTo(dest: ByteBuffer) {
+        getArray().forEach { dest.putFloat(it) }
+    }
+}

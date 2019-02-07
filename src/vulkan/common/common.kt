@@ -13,7 +13,7 @@ const val THOUSAND:Long = 1_000L
 const val MILLION:Long  = THOUSAND*THOUSAND
 const val BILLION:Long  = MILLION*1000
 
-val log:Logger = Logger.getLogger("Global")
+internal val log:Logger = Logger.getLogger("Global")
 
 data class SurfaceFormat(var colorFormat:VkFormat = 0,var colorSpace:VkColorSpaceKHR = 0)
 

@@ -3,6 +3,7 @@ package vulkan.font
 import org.apache.log4j.Logger
 import org.lwjgl.vulkan.VK10.VK_FORMAT_R8_UNORM
 import vulkan.app.VulkanApplication
+import vulkan.common.RenderContext
 import vulkan.misc.megabytes
 import vulkan.misc.readStringResource
 import vulkan.texture.Textures

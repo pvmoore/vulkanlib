@@ -23,12 +23,12 @@ import org.joml.Matrix4f
 import org.joml.Vector2f
 import org.joml.Vector2i
 import org.joml.Vector4f
-import vulkan.misc.Degrees
+import vulkan.maths.Degrees
 import vulkan.misc.string
 
 class Camera2D constructor(val windowSize:Vector2i = Vector2i()) {
     private var _zoomFactor         = 1f
-    private var rotationDegrees     = Degrees(0f)
+    private var rotationDegrees     = Degrees(0.0)
     private var recalculateView     = true
     private var recalculateProj     = true
     private var recalculateViewProj = true
@@ -69,14 +69,14 @@ class Camera2D constructor(val windowSize:Vector2i = Vector2i()) {
     }
     fun rotateTo(degrees: Degrees) {
         rotationDegrees = degrees
-        val rotated = Vector4f(0f,1f,0f,0f).rotateZ(degrees.toRadians())
+        val rotated = Vector4f(0f,1f,0f,0f).rotateZ(degrees.toRadians().toFloat())
         up.apply {
             x = rotated.x
             y = rotated.y
         }
         recalculateView = true
     }
-    fun rotateBy(degrees:Degrees) {
+    fun rotateBy(degrees: Degrees) {
         rotateTo(Degrees(degrees.value + rotationDegrees.value))
     }
     fun resizeWindow(newWindowSize:Vector2i) {

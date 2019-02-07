@@ -3,9 +3,9 @@ package vulkan.font
 import org.joml.Vector2f
 import org.joml.Vector2i
 import org.joml.Vector4f
-import vulkan.misc.dimension
-import vulkan.misc.height
-import vulkan.misc.width
+import vulkan.maths.dimension
+import vulkan.maths.height
+import vulkan.maths.width
 import vulkan.texture.Texture
 
 class Font(var name:String) {

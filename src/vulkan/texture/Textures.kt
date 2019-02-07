@@ -3,7 +3,6 @@ package vulkan.texture
 import org.apache.log4j.Logger
 import org.lwjgl.vulkan.VK10.*
 import org.lwjgl.vulkan.VkBufferImageCopy
-import org.lwjgl.vulkan.VkDevice
 import vulkan.api.*
 import vulkan.api.buffer.BufferAlloc
 import vulkan.api.buffer.VkBuffer
@@ -26,8 +25,8 @@ class Textures(val name:String = "") {
     private val logger: Logger = Logger.getLogger("Textures")
 
     private lateinit var vk: VulkanApplication
+
     private lateinit var commandPool:VkCommandPool
-    private lateinit var device: VkDevice
     private lateinit var deviceMemory: VkDeviceMemory
     private lateinit var stagingMemory: VkDeviceMemory
     private lateinit var stagingBuffer: VkBuffer
@@ -36,9 +35,8 @@ class Textures(val name:String = "") {
     private val map    = HashMap<String, Texture>()
 
     fun init(vk: VulkanApplication, size:Int) {
-        this.vk             = vk
-        this.device         = vk.device
-        this.commandPool    = device.createCommandPools(vk.queues.getFamily(Queues.TRANSFER),
+        this.vk          = vk
+        this.commandPool = vk.device.createCommandPools(vk.queues.getFamily(Queues.TRANSFER),
                                                         VK_COMMAND_POOL_CREATE_TRANSIENT_BIT)
         allocateMemory(size)
     }

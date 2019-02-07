@@ -99,10 +99,10 @@ class GraphicsComponent(val client: VulkanClient) {
         log.info("Entering mainLoop")
         var frameNumber           = 0L
         var seconds               = 0L
-        var tenSeconds            = 0L
+        var tenSeconds            = 10L
         var previousTimestamp     = System.nanoTime()
         val targetFrameTimeNsecs  = (1_000_000_000 / client.targetFPS).toLong()
-        val frameInfo             = FrameInfo(0, 0.0, 1.0)
+        val frameInfo             = FrameInfo(0, 0.0, 0.0, 1.0)
 
         while(!GLFW.glfwWindowShouldClose(window)) {
 
@@ -117,27 +117,29 @@ class GraphicsComponent(val client: VulkanClient) {
             frameInfo.delta = frameNsecs.toDouble()/targetFrameTimeNsecs.toDouble()
             frameInfo.number++
             frameInfo.relNumber += frameInfo.delta
+            frameInfo.seconds   += (frameNsecs.toDouble()/BILLION)
 
             frameNumber = frameInfo.number
 
             //frameTiming.endFrame(frameNsecs);
 
-            if(timestamp/BILLION > seconds) {
-                seconds = timestamp/BILLION
+            if(frameInfo.seconds.toLong() > seconds) {
+                seconds = frameInfo.seconds.toLong()
                 fps = BILLION.toDouble() / frameNsecs.toDouble()
 
                 //val avg = frameTiming.average(2);
                 //currentFPS = 1000.0 / avg;
 
-                log.info(String.format("Frame (abs:%s, rel:%.2f) delta=%.4f ms:%.3f fps:%.2f",
+                log.info(String.format("Frame (abs:%s, rel:%.2f) secs: %.2f delta=%.4f ms:%.3f fps:%.2f",
                     frameInfo.number,
                     frameInfo.relNumber,
+                    frameInfo.seconds,
                     frameInfo.delta,
                     frameNsecs/MILLION.toDouble(),
                     fps))
             }
-            if(timestamp/(BILLION*10) > tenSeconds) {
-                tenSeconds = timestamp/(BILLION*10)
+            if(frameInfo.seconds.toLong() >= tenSeconds) {
+                tenSeconds = frameInfo.seconds.toLong() + 10
 
                 val totalMem = Runtime.getRuntime().totalMemory()
                 val freeMem  = Runtime.getRuntime().freeMemory()

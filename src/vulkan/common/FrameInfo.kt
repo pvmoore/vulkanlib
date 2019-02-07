@@ -9,8 +9,10 @@ package vulkan.common
  * @param delta     Speed delta relative to <targetFPS> fps.
  *                  If <targetFPS>=60 and actual FPS=120 then delta will be 0.5
  *                  to slow down animations by half.
+ * @param seconds   Total number of elapsed seconds.
  */
 data class FrameInfo(
     var number:Long,
     var relNumber:Double,
-    var delta:Double)
+    var delta:Double,
+    var seconds:Double)
