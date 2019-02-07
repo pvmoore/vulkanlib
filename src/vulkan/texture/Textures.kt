@@ -26,10 +26,10 @@ class Textures(val name:String = "") {
 
     private lateinit var vk: VulkanApplication
 
-    private lateinit var commandPool:VkCommandPool
-    private lateinit var deviceMemory: VkDeviceMemory
-    private lateinit var stagingMemory: VkDeviceMemory
-    private lateinit var stagingBuffer: VkBuffer
+    private lateinit var commandPool   : VkCommandPool
+    private lateinit var deviceMemory  : VkDeviceMemory
+    private lateinit var stagingMemory : VkDeviceMemory
+    private lateinit var stagingBuffer : VkBuffer
 
     private val loader = ImageLoader
     private val map    = HashMap<String, Texture>()
@@ -53,62 +53,32 @@ class Textures(val name:String = "") {
 
     fun get(name:String, format:VkFormat = 0) : Texture {
         log("get \"$name\" ${if(format==0) "" else format.translateVkFormat()}")
-        return map.getOrPut(name) { create(name, format) }
-    }
-    //=========================================================================================
-    private fun log(msg:String) {
-        if(name.isBlank()) logger.info(msg) else logger.info("[$name] $msg")
-    }
-    private fun logUsage() {
-        val alloced = deviceMemory.bytesAllocated
-        val total   = deviceMemory.size
-        val percent = alloced*100.0 / total
-        log("Allocated ${alloced/MEGABYTE.toFloat()} / ${total/MEGABYTE} MB ($percent %)")
-    }
-    private fun allocateMemory(size:Int) {
-        this.deviceMemory =
-            vk.allocateMemory(
-                size              = size,
-                desiredMemFlags   = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                undesiredMemFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-                bufferUsage       = VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                imageUsage        = VK_IMAGE_USAGE_TRANSFER_DST_BIT
-            ).orThrow()
-        log("Allocated ${size/MEGABYTE} MB of device texture memory")
-
-        val stagingSize = Math.min(64.megabytes(), size)
-
-        this.stagingMemory =
-            vk.allocateMemory(
-                size              = stagingSize,
-                desiredMemFlags   = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-                undesiredMemFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                bufferUsage       = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                imageUsage        = 0
-            ).orThrow()
-        log("Allocated ${stagingSize/MEGABYTE} MB of texture staging texture memory")
-
-        this.stagingBuffer = stagingMemory.allocStagingSrcBuffer(stagingSize).orThrow()
-    }
-    private fun create(name:String, format:VkFormat) : Texture {
-        log("Creating texture \"$name\"")
-
-        loader.load(name, format).let { data ->
-
-            val image = uploadImage(data)
-            logUsage()
-            data.free()
-
-            return Texture(
-                name  = name,
-                width = data.width,
-                height = data.height,
-                channels = data.channels,
-                levels = data.levels,
-                image = image)
+        return map.getOrPut(name) {
+            generateTexture(name, loader.load(name, format))
         }
     }
-    private fun uploadImage(data: RawImageData): VkImage {
+    fun create(name:String, data:RawImageData) : Texture {
+        val t = generateTexture(name, data)
+        map[name] = t
+        return t
+    }
+    //=========================================================================================
+    private fun generateTexture(name:String, data:RawImageData) : Texture {
+        log("Creating texture \"$name\"")
+
+        val image = uploadImageToDevice(data)
+        logUsage()
+        data.free()
+
+        return Texture(
+            name     = name,
+            width    = data.width,
+            height   = data.height,
+            channels = data.channels,
+            levels   = data.levels,
+            image    = image)
+    }
+    private fun uploadImageToDevice(data: RawImageData): VkImage {
 
         log("Uploading image $data")
 
@@ -206,6 +176,40 @@ class Textures(val name:String = "") {
             log("Copy took ${(end -start)/1_000_000.0} ms")
         }
         region.free()
+    }
+    private fun allocateMemory(size:Int) {
+        this.deviceMemory =
+            vk.allocateMemory(
+                size              = size,
+                desiredMemFlags   = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                undesiredMemFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+                bufferUsage       = VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+                imageUsage        = VK_IMAGE_USAGE_TRANSFER_DST_BIT
+            ).orThrow()
+        log("Allocated ${size/MEGABYTE} MB of device texture memory")
+
+        val stagingSize = Math.min(64.megabytes(), size)
+
+        this.stagingMemory =
+            vk.allocateMemory(
+                size              = stagingSize,
+                desiredMemFlags   = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+                undesiredMemFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                bufferUsage       = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                imageUsage        = 0
+            ).orThrow()
+        log("Allocated ${stagingSize/MEGABYTE} MB of texture staging texture memory")
+
+        this.stagingBuffer = stagingMemory.allocStagingSrcBuffer(stagingSize).orThrow()
+    }
+    private fun log(msg:String) {
+        if(name.isBlank()) logger.info(msg) else logger.info("[$name] $msg")
+    }
+    private fun logUsage() {
+        val alloced = deviceMemory.bytesAllocated
+        val total   = deviceMemory.size
+        val percent = alloced*100.0 / total
+        log("Allocated ${alloced/MEGABYTE.toFloat()} / ${total/MEGABYTE} MB ($percent %)")
     }
 }
 

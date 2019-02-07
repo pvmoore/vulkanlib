@@ -49,7 +49,6 @@ class ImprovedNoise {
                                 lerp(u, grad(p[AB+1], x  , y-1, z-1 ),
                                         grad(p[BB+1], x-1, y-1, z-1 ))))
     }
-    /** @return result in the range 0.0 to 1.0 */
     fun noise(x:Double, y:Double, z:Double, octaves:Int, persistence:Double) : Double {
         var total     = 0.0
         var frequency = 1
@@ -67,6 +66,43 @@ class ImprovedNoise {
 
         return total/maxValue
     }
+
+    /**
+     * Generate a 2D array (size*size) of noise bytes in the range 0..255
+     */
+    fun noiseArray2D(size:Int, wavelength:Double, octaves:Int, persistence:Double) : ByteArray {
+
+        var min = Double.MAX_VALUE
+        var max = -Double.MAX_VALUE
+
+        val bytes   = ByteArray(size*size)
+        val doubles = DoubleArray(size*size)
+
+        // Generate random values
+        for(y in 0 until size) {
+            for(x in 0 until size) {
+                val v = (noise(x.toDouble()/wavelength, y.toDouble()/wavelength, 0.0,
+                               octaves, persistence))
+
+                if(v>max) max = v
+                if(v<min) min = v
+
+                doubles[x + y * size] = v
+            }
+        }
+
+        // Normalise the values to the 0 to 255 range
+        val mul = 255.0 / (max-min)
+
+        doubles.forEachIndexed { i, v ->
+
+            val b = (v - min) * mul
+
+            bytes[i] = b.toByte()
+        }
+
+        return bytes
+    }
     companion object {
         private fun fade(t:Double) : Double {
             return t * t * t * (t * (t * 6 - 15) + 10)
@@ -75,29 +111,24 @@ class ImprovedNoise {
             return a + t * (b - a)
         }
         private fun grad(hash:Int, x:Double, y:Double, z:Double) : Double {
-//            val h = hash and 15                      // CONVERT LO 4 BITS OF HASH CODE
-//            val u = if(h < 8) x else y               // INTO 12 GRADIENT DIRECTIONS.
-//            val v = if(h < 4) y else if(h == 12 || h == 14) x else z
-//            return (if((h and 1) == 0) u else -u) + (if((h and 2) == 0) v else -v)
-
-            when(hash and 0xF) {
-                0x0  -> return  x + y
-                0x1  -> return -x + y
-                0x2  -> return  x - y
-                0x3  -> return -x - y
-                0x4  -> return  x + z
-                0x5  -> return -x + z
-                0x6  -> return  x - z
-                0x7  -> return -x - z
-                0x8  -> return  y + z
-                0x9  -> return -y + z
-                0xA  -> return  y - z
-                0xB  -> return -y - z
-                0xC  -> return  y + x
-                0xD  -> return -y + z
-                0xE  -> return  y - x
-                0xF  -> return -y - z
-                else -> return 0.0      // never happens
+            return when(hash and 0xF) {
+                0x0  ->  x + y
+                0x1  -> -x + y
+                0x2  ->  x - y
+                0x3  -> -x - y
+                0x4  ->  x + z
+                0x5  -> -x + z
+                0x6  ->  x - z
+                0x7  -> -x - z
+                0x8  ->  y + z
+                0x9  -> -y + z
+                0xA  ->  y - z
+                0xB  -> -y - z
+                0xC  ->  y + x
+                0xD  -> -y + z
+                0xE  ->  y - x
+                0xF  -> -y - z
+                else -> 0.0      // never happens
             }
         }
         private val p = IntArray(512)
