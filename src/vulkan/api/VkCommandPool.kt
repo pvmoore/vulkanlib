@@ -62,7 +62,7 @@ class VkCommandPool(private val device:VkDevice, val handle:Long) {
  * @param flags VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT
  *              VK_COMMAND_POOL_CREATE_TRANSIENT_BIT
  */
-fun VkDevice.createCommandPools(family:Int, flags:Int = 0):VkCommandPool {
+fun VkDevice.createCommandPool(family:Int, flags:Int = 0):VkCommandPool {
 
     val info = VkCommandPoolCreateInfo.calloc()
         .sType(VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO)

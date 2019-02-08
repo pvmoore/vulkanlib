@@ -5,7 +5,7 @@ import vulkan.api.beginOneTimeSubmit
 import vulkan.api.buffer.BufferAlloc
 import vulkan.api.buffer.VkBuffer
 import vulkan.api.buffer.copyBuffer
-import vulkan.api.createCommandPools
+import vulkan.api.createCommandPool
 import vulkan.api.end
 import vulkan.api.submitAndWait
 import vulkan.app.VulkanApplication
@@ -24,8 +24,8 @@ class StagingTransfer(vk: VulkanApplication,
                       private val stagingBuffer: VkBuffer)
 {
     private val queue       = vk.queues.get(Queues.TRANSFER)
-    private val commandPool = vk.device.createCommandPools(vk.queues.getFamily(Queues.TRANSFER),
-                                                           VK_COMMAND_POOL_CREATE_TRANSIENT_BIT)
+    private val commandPool = vk.device.createCommandPool(vk.queues.getFamily(Queues.TRANSFER),
+                                                          VK_COMMAND_POOL_CREATE_TRANSIENT_BIT)
     fun destroy() {
         commandPool.destroy()
     }

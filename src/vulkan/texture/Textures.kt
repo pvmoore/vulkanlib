@@ -36,8 +36,8 @@ class Textures(val name:String = "") {
 
     fun init(vk: VulkanApplication, size:Int) {
         this.vk          = vk
-        this.commandPool = vk.device.createCommandPools(vk.queues.getFamily(Queues.TRANSFER),
-                                                        VK_COMMAND_POOL_CREATE_TRANSIENT_BIT)
+        this.commandPool = vk.device.createCommandPool(vk.queues.getFamily(Queues.TRANSFER),
+                                                       VK_COMMAND_POOL_CREATE_TRANSIENT_BIT)
         allocateMemory(size)
     }
     fun destroy() {

@@ -240,7 +240,7 @@ class GraphicsComponent(val client: VulkanClient) {
         swapChain = SwapChain(vk, w.x, w.y, surface, surfaceFormat, renderPass)
     }
     private fun createCommandPool() {
-        commandPool = device.createCommandPools(
+        commandPool = device.createCommandPool(
             vk.queues.getFamily(Queues.GRAPHICS),
             VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT or VK_COMMAND_POOL_CREATE_TRANSIENT_BIT
         )
