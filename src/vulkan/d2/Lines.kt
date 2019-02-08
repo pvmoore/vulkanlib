@@ -73,9 +73,9 @@ class Lines {
         pipeline.init(context)
             .withVertexInputState(points.elementInstance(), VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
             .withDSLayouts(arrayOf(descriptors.layout(0).dsLayout))
-            .withShader(VK_SHADER_STAGE_VERTEX_BIT, "Lines.vert")
-            .withShader(VK_SHADER_STAGE_GEOMETRY_BIT, "Lines.geom")
-            .withShader(VK_SHADER_STAGE_FRAGMENT_BIT, "Lines.frag")
+            .withShader(VK_SHADER_STAGE_VERTEX_BIT,   "Lines/Lines.vert")
+            .withShader(VK_SHADER_STAGE_GEOMETRY_BIT, "Lines/Lines.geom")
+            .withShader(VK_SHADER_STAGE_FRAGMENT_BIT, "Lines/Lines.frag")
             .withStandardColorBlend()
             .build()
 

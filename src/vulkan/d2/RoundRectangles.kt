@@ -134,9 +134,9 @@ class RoundRectangles {
         pipeline.init(context)
             .withVertexInputState(vertices.elementInstance(), VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
             .withDSLayouts(arrayOf(descriptors.layout(0).dsLayout))
-            .withShader(VK_SHADER_STAGE_VERTEX_BIT,   "RoundRectangles.vert")
-            .withShader(VK_SHADER_STAGE_GEOMETRY_BIT, "RoundRectangles.geom")
-            .withShader(VK_SHADER_STAGE_FRAGMENT_BIT, "RoundRectangles.frag")
+            .withShader(VK_SHADER_STAGE_VERTEX_BIT,   "RoundRectangles/RoundRectangles.vert")
+            .withShader(VK_SHADER_STAGE_GEOMETRY_BIT, "RoundRectangles/RoundRectangles.geom")
+            .withShader(VK_SHADER_STAGE_FRAGMENT_BIT, "RoundRectangles/RoundRectangles.frag")
             .withStandardColorBlend()
             .build()
     }

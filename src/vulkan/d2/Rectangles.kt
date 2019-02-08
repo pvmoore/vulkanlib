@@ -143,8 +143,8 @@ class Rectangles {
         pipeline.init(context)
             .withVertexInputState(vertices.elementInstance(), VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .withDSLayouts(arrayOf(descriptors.layout(0).dsLayout))
-            .withShader(VK_SHADER_STAGE_VERTEX_BIT,   "Rectangles.vert")
-            .withShader(VK_SHADER_STAGE_FRAGMENT_BIT, "Rectangles.frag")
+            .withShader(VK_SHADER_STAGE_VERTEX_BIT,   "Rectangles/Rectangles.vert")
+            .withShader(VK_SHADER_STAGE_FRAGMENT_BIT, "Rectangles/Rectangles.frag")
             .build()
     }
     private fun updateVertices(res:PerFrameResource) {

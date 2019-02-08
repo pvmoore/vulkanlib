@@ -167,6 +167,7 @@ private class TestCreateNoiseTexture : VulkanClient(
             // Renderpass finalLayout = PRESENT_SRC_KHR
             b.endRenderPass()
             b.end()
+
             /** Submit render buffer */
             vk.queues.get(Queues.GRAPHICS).submit(
                 arrayOf(b),

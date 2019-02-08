@@ -73,9 +73,9 @@ class Circles {
         pipeline.init(context)
             .withVertexInputState(points.elementInstance(), VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
             .withDSLayouts(arrayOf(descriptors.layout(0).dsLayout))
-            .withShader(VK_SHADER_STAGE_VERTEX_BIT, "Circles.vert")
-            .withShader(VK_SHADER_STAGE_GEOMETRY_BIT, "Circles.geom")
-            .withShader(VK_SHADER_STAGE_FRAGMENT_BIT, "Circles.frag")
+            .withShader(VK_SHADER_STAGE_VERTEX_BIT,   "Circles/Circles.vert")
+            .withShader(VK_SHADER_STAGE_GEOMETRY_BIT, "Circles/Circles.geom")
+            .withShader(VK_SHADER_STAGE_FRAGMENT_BIT, "Circles/Circles.frag")
             .withStandardColorBlend()
             .build()
 

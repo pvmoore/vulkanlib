@@ -44,16 +44,23 @@ object Shaders {
         val file     = File(name)
         val baseName = file.nameWithoutExtension
         val ext      = File(name).extension
+        val dir      = file.parent?.let { "$it/" } ?: ""
         assert(ext in listOf("comp","vert","frag","geom"))
 
         val code = if(DEBUG && File(srcDirectory + name).exists()) {
             /** Compile the shader and write the spirv to the resources/shaders folder */
-            val targetName = "$fileTargetDirectory${baseName}_$ext.spv"
+
+            if(dir.isNotEmpty()) {
+                File(fileTargetDirectory + dir).mkdirs()
+            }
+
+            val targetName = "$fileTargetDirectory$dir${baseName}_$ext.spv"
+
             compileShader(name, targetName, props, includes)
             readBinaryFile(File(targetName))
         } else {
             /** In RELEASE mode, just assume the shader is already in the resources/shaders folder */
-            val targetName = "$resourceTargetDirectory${baseName}_$ext.spv"
+            val targetName = "$resourceTargetDirectory$dir${baseName}_$ext.spv"
             log.info("Reading shader resource $targetName")
             readBinaryResource(targetName)
         }

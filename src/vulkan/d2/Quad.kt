@@ -146,8 +146,8 @@ class Quad {
         pipeline.init(context)
             .withDSLayouts(arrayOf(descriptors.layout(0).dsLayout))
             .withShaderProperties(mapOf(), listOf())
-            .withShader(VK_SHADER_STAGE_VERTEX_BIT,   "Quad.vert")
-            .withShader(VK_SHADER_STAGE_FRAGMENT_BIT, "Quad.frag")
+            .withShader(VK_SHADER_STAGE_VERTEX_BIT,   "Quad/Quad.vert")
+            .withShader(VK_SHADER_STAGE_FRAGMENT_BIT, "Quad/Quad.frag")
             .withVertexInputState(vertices.elementInstance(), VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .build()
     }
