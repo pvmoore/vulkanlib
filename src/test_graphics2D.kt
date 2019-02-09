@@ -3,12 +3,12 @@ import org.joml.Matrix4f
 import org.joml.Vector2f
 import org.joml.Vector4i
 import org.lwjgl.glfw.GLFW
-import org.lwjgl.glfw.GLFWKeyCallback
 import org.lwjgl.vulkan.VK10.VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
 import org.lwjgl.vulkan.VkClearValue
 import org.lwjgl.vulkan.VkDevice
 import org.lwjgl.vulkan.VkPhysicalDeviceFeatures
 import vulkan.api.*
+import vulkan.app.KeyEvent
 import vulkan.app.VulkanApplication
 import vulkan.common.*
 import vulkan.d2.*
@@ -113,6 +113,8 @@ private class GraphicsApplication : VulkanClient(
     }
     override fun render(frame: FrameInfo, res: PerFrameResource) {
 
+        update()
+
         val b = res.adhocCB
         b.beginOneTimeSubmit()
 
@@ -144,6 +146,13 @@ private class GraphicsApplication : VulkanClient(
         )
     }
     //=====================================================================================================
+    private fun update() {
+        vk.graphics.drainWindowEvents().forEach {
+            if(it is KeyEvent && it.key == GLFW.GLFW_KEY_ESCAPE) {
+                vk.graphics.postCloseMessage()
+            }
+        }
+    }
     private fun beforeRenderPass(frame: FrameInfo, res: PerFrameResource) {
         quads.forEach { q-> q.beforeRenderPass(frame, res) }
         rectangles.beforeRenderPass(frame, res)
@@ -164,14 +173,6 @@ private class GraphicsApplication : VulkanClient(
     }
     private fun initialise() {
         log.info("Initialising client")
-
-        vk.graphics.setCallback(object : GLFWKeyCallback() {
-            override fun invoke(window: Long, key: Int, scancode: Int, action: Int, mods: Int) {
-                if(key == GLFW.GLFW_KEY_ESCAPE && action == GLFW.GLFW_RELEASE) {
-                    GLFW.glfwSetWindowShouldClose(window, true)
-                }
-            }
-        })
 
         vk.shaders.setCompilerPath("/pvmoore/_tools/glslangValidator.exe")
 

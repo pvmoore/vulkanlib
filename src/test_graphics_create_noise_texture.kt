@@ -2,13 +2,13 @@
 import org.joml.Matrix4f
 import org.joml.Vector4i
 import org.lwjgl.glfw.GLFW
-import org.lwjgl.glfw.GLFWKeyCallback
 import org.lwjgl.vulkan.VK10
 import org.lwjgl.vulkan.VK10.VK_FORMAT_R8_UNORM
 import org.lwjgl.vulkan.VkClearValue
 import org.lwjgl.vulkan.VkDevice
 import org.lwjgl.vulkan.VkPhysicalDeviceFeatures
 import vulkan.api.*
+import vulkan.app.KeyEvent
 import vulkan.app.VulkanApplication
 import vulkan.common.*
 import vulkan.d2.Camera2D
@@ -94,14 +94,6 @@ private class TestCreateNoiseTexture : VulkanClient(
         this.vk     = vk
         this.device = vk.device
 
-        vk.graphics.setCallback(object :GLFWKeyCallback() {
-            override fun invoke(window: Long, key: Int, scancode: Int, action: Int, mods: Int) {
-                if(key == GLFW.GLFW_KEY_ESCAPE && action == GLFW.GLFW_RELEASE) {
-                    GLFW.glfwSetWindowShouldClose(window, true)
-                }
-            }
-        })
-
         vk.shaders.setCompilerPath("/pvmoore/_tools/glslangValidator.exe")
 
         camera.resizeWindow(vk.graphics.windowSize)
@@ -145,6 +137,9 @@ private class TestCreateNoiseTexture : VulkanClient(
         vk.graphics.showWindow()
     }
     override fun render(frame: FrameInfo, res: PerFrameResource) {
+
+        update()
+
         res.adhocCB.let { b->
             b.beginOneTimeSubmit()
 
@@ -176,6 +171,13 @@ private class TestCreateNoiseTexture : VulkanClient(
                 arrayOf(res.renderFinished),    // signal semaphores
                 res.fence                       // fence
             )
+        }
+    }
+    private fun update() {
+        vk.graphics.drainWindowEvents().forEach {
+            if(it is KeyEvent && it.key == GLFW.GLFW_KEY_ESCAPE) {
+                vk.graphics.postCloseMessage()
+            }
         }
     }
     private fun createNoiseTexture() {

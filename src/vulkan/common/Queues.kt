@@ -34,7 +34,7 @@ class Queues(private val client:VulkanClient) {
         queues[name]?.let { return it[index] }
         throw Error("Queue $name not found")
     }
-    fun getFamily(name:String, index:Int = 0) : Int {
+    fun getFamily(name:String) : Int {
         return selectedQueues.first { it.name==name }.family
     }
     fun select(name:String, family:Int, count:Int) {

@@ -2,9 +2,12 @@ package vulkan.app
 
 import org.joml.Vector2i
 import org.lwjgl.BufferUtils
-import org.lwjgl.glfw.GLFW
-import org.lwjgl.glfw.GLFWKeyCallback
-import org.lwjgl.glfw.GLFWVulkan
+import org.lwjgl.glfw.*
+import org.lwjgl.glfw.GLFW.GLFW_CURSOR
+import org.lwjgl.glfw.GLFW.GLFW_CURSOR_DISABLED
+import org.lwjgl.glfw.GLFW.GLFW_CURSOR_HIDDEN
+import org.lwjgl.glfw.GLFW.GLFW_CURSOR_NORMAL
+import org.lwjgl.glfw.GLFW.glfwSetInputMode
 import org.lwjgl.system.Callback
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.system.MemoryUtil
@@ -22,7 +25,8 @@ class GraphicsComponent(val client: VulkanClient) {
     private var surface:VkSurfaceKHR    = VK_NULL_HANDLE
     private var window:Long             = VK_NULL_HANDLE
     private var frameResourceIndex:Long = 0
-    private val frameResources = ArrayList<PerFrameResource>()
+    private val frameResources          = ArrayList<PerFrameResource>()
+    private val windowEvents            = ArrayList<WindowEvent>()
 
     private lateinit var vk:VulkanApplication
     private lateinit var device: VkDevice
@@ -47,6 +51,7 @@ class GraphicsComponent(val client: VulkanClient) {
         createSwapChain()
         createCommandPool()
         createPerFrameResources()
+        addEventCallbacks()
 
         fonts.init(vk)
 
@@ -67,6 +72,9 @@ class GraphicsComponent(val client: VulkanClient) {
         fonts.destroy()
         if(surface!=VK_NULL_HANDLE) vkDestroySurfaceKHR(vk.instance, surface, null)
         GLFW.glfwDestroyWindow(window)
+    }
+    fun postCloseMessage() {
+        GLFW.glfwSetWindowShouldClose(window, true)
     }
 
     val windowSize: Vector2i
@@ -90,9 +98,24 @@ class GraphicsComponent(val client: VulkanClient) {
             else -> GLFW.glfwHideWindow(window)
         }
     }
-    fun setCallback(callback: GLFWKeyCallback) {
-        glfwCallbacks.add(callback)
-        GLFW.glfwSetKeyCallback(window, callback)
+    /** Return all window events and clear the queue. */
+    fun drainWindowEvents() : List<WindowEvent> {
+        val list = windowEvents.toList()
+        windowEvents.clear()
+        return list
+    }
+    fun peekAtWindowEvents(type:WindowEvent) : List<WindowEvent> {
+        return windowEvents.filter { it.javaClass == type.javaClass }
+    }
+    fun setMouseCursorVisible(visible : Boolean) {
+        glfwSetInputMode(window, GLFW_CURSOR, if(visible) GLFW_CURSOR_NORMAL else GLFW_CURSOR_HIDDEN)
+    }
+    /**
+     * This will capture the mouse and make it hidden.
+     * The application will need to display its own cursor.
+     */
+    fun captureMouse() {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED)
     }
 
     fun enterLoop() {
@@ -298,5 +321,38 @@ class GraphicsComponent(val client: VulkanClient) {
             surfaceFormat.colorFormat = colorFormat
             surfaceFormat.colorSpace  = colorSpace
         }
+    }
+    private fun addEventCallbacks() {
+
+        val keyCallback = object : GLFWKeyCallback() {
+            override fun invoke(window : Long, key : Int, scancode : Int, action : Int, mods : Int) {
+                windowEvents.add(KeyEvent(key, scancode, KeyAction(action), KeyMods(mods)))
+            }
+        }
+        val mouseButtonCallback = object : GLFWMouseButtonCallback() {
+            override fun invoke(window : Long, button : Int, action : Int, mods : Int) {
+                windowEvents.add(MouseButtonEvent(button, KeyAction(action), KeyMods(mods)))
+            }
+        }
+        val mousePosCallback = object : GLFWCursorPosCallback() {
+            override fun invoke(window : Long, xpos : Double, ypos : Double) {
+                windowEvents.add(MouseMoveEvent(xpos, ypos))
+            }
+        }
+        val mouseScrollCallback = object : GLFWScrollCallback() {
+            override fun invoke(window : Long, xoffset : Double, yoffset : Double) {
+                windowEvents.add(MouseWheelEvent(xoffset, yoffset))
+            }
+        }
+
+        glfwCallbacks.add(keyCallback)
+        glfwCallbacks.add(mouseButtonCallback)
+        glfwCallbacks.add(mousePosCallback)
+        glfwCallbacks.add(mouseScrollCallback)
+
+        GLFW.glfwSetKeyCallback(window, keyCallback)
+        GLFW.glfwSetMouseButtonCallback(window, mouseButtonCallback)
+        GLFW.glfwSetCursorPosCallback(window, mousePosCallback)
+        GLFW.glfwSetScrollCallback(window, mouseScrollCallback)
     }
 }

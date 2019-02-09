@@ -55,6 +55,12 @@ fun VkPhysicalDeviceLimits.dump() {
 
     println("\t- optimalBufferCopyOffsetAlignment .. ${optimalBufferCopyOffsetAlignment()}")
 }
+fun VkExtensionProperties.Buffer.dump() {
+    println("Physical Device Extensions:")
+    this.forEach {
+        println("\t${it.extensionNameString()} version:${it.specVersion()}")
+    }
+}
 fun VkPhysicalDeviceFeatures.dump() {
     println("\tFeatures:")
     println("\t- geometryShader     .. ${geometryShader()}")

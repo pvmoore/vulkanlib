@@ -130,9 +130,7 @@ class Textures(val name:String = "") {
 
         region.imageExtent().set(destImage.dimensions[0], destImage.dimensions[1], destImage.dimensions[2])
 
-        commandPool.alloc().let { cmd ->
-
-            cmd.beginOneTimeSubmit()
+        commandPool.beginOneTimeSubmit { cmd->
 
             /**
              * Change dest image layout:
@@ -170,7 +168,6 @@ class Textures(val name:String = "") {
             val start = System.nanoTime()
 
             vk.queues.get(Queues.TRANSFER).submitAndWait(cmd)
-            commandPool.free(cmd)
 
             val end = System.nanoTime()
             log("Copy took ${(end -start)/1_000_000.0} ms")

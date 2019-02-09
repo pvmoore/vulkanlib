@@ -2,7 +2,6 @@
 import org.joml.Vector2i
 import org.joml.Vector4i
 import org.lwjgl.glfw.GLFW
-import org.lwjgl.glfw.GLFWKeyCallback
 import org.lwjgl.vulkan.*
 import org.lwjgl.vulkan.VK10.*
 import vulkan.api.*
@@ -12,7 +11,8 @@ import vulkan.api.descriptor.*
 import vulkan.api.memory.StagingTransfer
 import vulkan.api.memory.createStagingTransfer
 import vulkan.api.pipeline.ComputePipeline
-import vulkan.api.pipeline.bindComputePipeline
+import vulkan.api.pipeline.bindPipeline
+import vulkan.app.KeyEvent
 import vulkan.app.VulkanApplication
 import vulkan.common.*
 import vulkan.misc.megabytes
@@ -176,7 +176,8 @@ private class ComputeSimpleBufferCopy : VulkanClient(
         }
     }
     override fun render(frame: FrameInfo, res: PerFrameResource) {
-        beforeRender(frame, res)
+
+        update(frame, res)
 
         pushConstants.set(0, 10f)
         pushConstants.set(1, 20f)
@@ -187,7 +188,7 @@ private class ComputeSimpleBufferCopy : VulkanClient(
             .copyBuffer(
                 buffers.get(VulkanBuffers.STAGING_UPLOAD),
                 buffers.get("input"))
-            .bindComputePipeline(pipeline!!.pipeline)
+            .bindPipeline(pipeline)
             .bindDescriptorSets(
                 VK_PIPELINE_BIND_POINT_COMPUTE,
                 pipeline!!.layout,
@@ -254,7 +255,14 @@ private class ComputeSimpleBufferCopy : VulkanClient(
     //  |_|   |_|  |_| \_/ \__,_| \__\__|
     //
     //=====================================================================================================
-    private fun beforeRender(frame: FrameInfo, res: PerFrameResource) {
+
+    private fun update(frame: FrameInfo, res: PerFrameResource) {
+
+        vk.graphics.drainWindowEvents().forEach {
+            if(it is KeyEvent && it.key == GLFW.GLFW_KEY_ESCAPE) {
+                vk.graphics.postCloseMessage()
+            }
+        }
 
         fun updateStagingBuffer() {
             /** Write data to staging upload buffer */
@@ -297,13 +305,6 @@ private class ComputeSimpleBufferCopy : VulkanClient(
     }
     private fun initialise() {
         println("--------------------------------------------------------------------- Initialising client")
-        vk.graphics.setCallback(object : GLFWKeyCallback() {
-            override fun invoke(window: Long, key: Int, scancode: Int, action: Int, mods: Int) {
-                if(key == GLFW.GLFW_KEY_ESCAPE && action == GLFW.GLFW_RELEASE) {
-                    GLFW.glfwSetWindowShouldClose(window, true)
-                }
-            }
-        })
 
         vk.shaders.setCompilerPath("/pvmoore/_tools/glslangValidator.exe")
 

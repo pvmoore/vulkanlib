@@ -11,7 +11,7 @@ import org.lwjgl.vulkan.VkDevice
 import vulkan.misc.check
 import vulkan.misc.toList
 
-class VkCommandPool(private val device:VkDevice, val handle:Long) {
+class VkCommandPool(private val device:VkDevice, val handle:Long, val flags:Int) {
 
     fun destroy() {
         vkDestroyCommandPool(device, handle, null)
@@ -72,11 +72,34 @@ fun VkDevice.createCommandPool(family:Int, flags:Int = 0):VkCommandPool {
     val pPool = memAllocLong(1)
     vkCreateCommandPool(this, info, null, pPool).check()
 
-    val pool = VkCommandPool(this, pPool.get(0))
+    val pool = VkCommandPool(this, pPool.get(0), flags)
 
     info.free()
     memFree(pPool)
 
     return pool
 }
+/**
+ *  Allocate a buffer and allow client to use and submit it
+ *  before automatically freeing after use.
+ *  This is expected to be used for throw-away buffers only. ie. transient but not reset-able
+ *
+ *  eg.
+ *
+ *  pool.beginOneTimeSubmit() { b->
+ *      // do something with buffer
+ *      b.end();
+ *      submit(b)
+ *  }
+ */
+fun VkCommandPool.beginOneTimeSubmit(f:(VkCommandBuffer)->Unit) {
+    assert(this.flags == VK_COMMAND_POOL_CREATE_TRANSIENT_BIT) {
+        "Expecting to be used on a command pool with TRANSIENT bit set"
+    }
 
+    this.alloc().let { b->
+        b.beginOneTimeSubmit()
+        f(b)
+        this.free(b)
+    }
+}

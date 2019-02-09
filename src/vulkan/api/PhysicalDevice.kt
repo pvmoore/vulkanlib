@@ -1,11 +1,14 @@
 package vulkan.api
 
 import org.lwjgl.system.MemoryStack
+import org.lwjgl.system.MemoryUtil
+import org.lwjgl.system.MemoryUtil.memFree
 import org.lwjgl.vulkan.*
 import org.lwjgl.vulkan.KHRSurface.*
 import org.lwjgl.vulkan.VK10.*
 import vulkan.common.log
 import vulkan.misc.check
+import vulkan.misc.dump
 import vulkan.misc.forEach
 
 fun selectBestPhysicalDevice(instance: VkInstance,
@@ -83,6 +86,9 @@ fun selectBestPhysicalDevice(instance: VkInstance,
                     log.info("Format R16_SFLOAT supported: ${isFormatSupported(it, VK_FORMAT_R16_SFLOAT)}")
                     log.info("Format R32_SFLOAT supported: ${isFormatSupported(it, VK_FORMAT_R32_SFLOAT)}")
                 }
+
+                getExtensions(preferredDevice!!).dump()
+
                 return preferredDevice!!
             }
         }
@@ -106,6 +112,15 @@ fun VkPhysicalDevice.getProperties(): VkPhysicalDeviceProperties {
     val properties = VkPhysicalDeviceProperties.calloc()
     vkGetPhysicalDeviceProperties(this, properties)
     return properties
+}
+/** @return Buffer that needs to be freed by caller */
+fun VkPhysicalDevice.getExtensions():VkExtensionProperties.Buffer {
+    val count = MemoryUtil.memAllocInt(1)
+    vkEnumerateDeviceExtensionProperties(this, null as CharSequence?, count, null).check()
+    val extensions = VkExtensionProperties.calloc(count.get(0))
+    vkEnumerateDeviceExtensionProperties(this, null as CharSequence?, count, extensions).check()
+    memFree(count)
+    return extensions
 }
 fun getFormats(stack:MemoryStack, pDevice:VkPhysicalDevice, surface:Long):VkSurfaceFormatKHR.Buffer {
     val count = stack.mallocInt(1)
