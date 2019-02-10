@@ -3,12 +3,7 @@ package vulkan.app
 import org.joml.Vector2i
 import org.lwjgl.BufferUtils
 import org.lwjgl.glfw.*
-import org.lwjgl.glfw.GLFW.GLFW_CURSOR
-import org.lwjgl.glfw.GLFW.GLFW_CURSOR_DISABLED
-import org.lwjgl.glfw.GLFW.GLFW_CURSOR_HIDDEN
-import org.lwjgl.glfw.GLFW.GLFW_CURSOR_NORMAL
-import org.lwjgl.glfw.GLFW.glfwSetInputMode
-import org.lwjgl.system.Callback
+import org.lwjgl.glfw.GLFW.*import org.lwjgl.system.Callback
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.system.MemoryUtil
 import org.lwjgl.vulkan.KHRSurface.VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
@@ -36,6 +31,7 @@ class GraphicsComponent(val client: VulkanClient) {
     val animations    = Animations
     val fonts         = Fonts
     var isInitialised = false
+    val mouse         = Mouse(0f, 0f, arrayOf(null,null,null))
 
     lateinit var swapChain: SwapChain
     lateinit var renderPass: VkRenderPass
@@ -71,17 +67,17 @@ class GraphicsComponent(val client: VulkanClient) {
         renderPass.destroy()
         fonts.destroy()
         if(surface!=VK_NULL_HANDLE) vkDestroySurfaceKHR(vk.instance, surface, null)
-        GLFW.glfwDestroyWindow(window)
+        glfwDestroyWindow(window)
     }
     fun postCloseMessage() {
-        GLFW.glfwSetWindowShouldClose(window, true)
+        glfwSetWindowShouldClose(window, true)
     }
 
     val windowSize: Vector2i
         get() {
             val w = BufferUtils.createIntBuffer(1)
             val h = BufferUtils.createIntBuffer(1)
-            GLFW.glfwGetWindowSize(window, w, h)
+            glfwGetWindowSize(window, w, h)
             return Vector2i(w.get(0), h.get(0))
         }
 
@@ -90,12 +86,12 @@ class GraphicsComponent(val client: VulkanClient) {
 
     // Setter properties
     var windowTitle:String = client.windowTitle
-        set(value) { field = value; GLFW.glfwSetWindowTitle(window, field) }
+        set(value) { field = value; glfwSetWindowTitle(window, field) }
 
     fun showWindow(flag:Boolean=true) {
         when(flag) {
-            true -> GLFW.glfwShowWindow(window)
-            else -> GLFW.glfwHideWindow(window)
+            true -> glfwShowWindow(window)
+            else -> glfwHideWindow(window)
         }
     }
     /** Return all window events and clear the queue. */
@@ -126,11 +122,11 @@ class GraphicsComponent(val client: VulkanClient) {
         var previousTimestamp     = System.nanoTime()
         val frameInfo             = FrameInfo(0, 0.0, 1.0)
 
-        while(!GLFW.glfwWindowShouldClose(window)) {
+        while(!glfwWindowShouldClose(window)) {
 
             renderFrame(frameInfo)
 
-            GLFW.glfwPollEvents()
+            glfwPollEvents()
 
             val timestamp  = System.nanoTime()
             val frameNsecs = timestamp - previousTimestamp
@@ -197,23 +193,23 @@ class GraphicsComponent(val client: VulkanClient) {
             waitSemaphores = arrayOf(resource.renderFinished))
     }
     private fun createWindow() {
-        GLFW.glfwDefaultWindowHints()
-        GLFW.glfwWindowHint(GLFW.GLFW_CLIENT_API, GLFW.GLFW_NO_API)
-        GLFW.glfwWindowHint(GLFW.GLFW_VISIBLE, GLFW.GLFW_FALSE)
+        glfwDefaultWindowHints()
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API)
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE)
 
         var width       = client.width
         var height      = client.height
         val resizable   = false
         val decorated   = true
         val autoIconify = false
-        var monitor = GLFW.glfwGetPrimaryMonitor()
-        val vidmode = GLFW.glfwGetVideoMode(monitor)!!
+        var monitor = glfwGetPrimaryMonitor()
+        val vidmode = glfwGetVideoMode(monitor)!!
 
         if(client.windowed) {
             monitor = 0
-            GLFW.glfwWindowHint(GLFW.GLFW_VISIBLE, GLFW.GLFW_FALSE)
-            GLFW.glfwWindowHint(GLFW.GLFW_RESIZABLE, if(resizable) GLFW.GLFW_TRUE else GLFW.GLFW_FALSE)
-            GLFW.glfwWindowHint(GLFW.GLFW_DECORATED, if(decorated) GLFW.GLFW_TRUE else GLFW.GLFW_FALSE)
+            glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE)
+            glfwWindowHint(GLFW_RESIZABLE, if(resizable) GLFW_TRUE else GLFW_FALSE)
+            glfwWindowHint(GLFW_DECORATED, if(decorated) GLFW_TRUE else GLFW_FALSE)
 
         } else {
             // for the moment always use the desktop resolution
@@ -221,9 +217,9 @@ class GraphicsComponent(val client: VulkanClient) {
             height = vidmode.height()
         }
 
-        GLFW.glfwWindowHint(GLFW.GLFW_AUTO_ICONIFY, if(autoIconify) GLFW.GLFW_TRUE else GLFW.GLFW_FALSE)
+        glfwWindowHint(GLFW_AUTO_ICONIFY, if(autoIconify) GLFW_TRUE else GLFW_FALSE)
 
-        window = GLFW.glfwCreateWindow(
+        window = glfwCreateWindow(
             width,
             height,
             windowTitle,
@@ -234,7 +230,7 @@ class GraphicsComponent(val client: VulkanClient) {
             it
         }
 
-        GLFW.glfwSetWindowPos(
+        glfwSetWindowPos(
             window,
             (vidmode.width() - width) / 2,
             (vidmode.height() - height) / 2
@@ -322,22 +318,30 @@ class GraphicsComponent(val client: VulkanClient) {
     }
     private fun addEventCallbacks() {
 
-        val keyCallback = object : GLFWKeyCallback() {
+        val keyCallback = object :GLFWKeyCallback() {
             override fun invoke(window : Long, key : Int, scancode : Int, action : Int, mods : Int) {
                 windowEvents.add(KeyEvent(key, scancode, KeyAction(action), KeyMods(mods)))
             }
         }
-        val mouseButtonCallback = object : GLFWMouseButtonCallback() {
+        val mouseButtonCallback = object :GLFWMouseButtonCallback() {
             override fun invoke(window : Long, button : Int, action : Int, mods : Int) {
-                windowEvents.add(MouseButtonEvent(button, KeyAction(action), KeyMods(mods)))
+                windowEvents.add(MouseButtonEvent(mouse.x, mouse.y, button, KeyAction(action), KeyMods(mods)))
+                if(button < mouse.buttons.size) {
+                    mouse.buttons[button] = when(action) {
+                        GLFW_PRESS -> KeyMods(mods)
+                        else       -> null
+                    }
+                }
             }
         }
-        val mousePosCallback = object : GLFWCursorPosCallback() {
+        val mousePosCallback = object :GLFWCursorPosCallback() {
             override fun invoke(window : Long, xpos : Double, ypos : Double) {
                 windowEvents.add(MouseMoveEvent(xpos.toFloat(), ypos.toFloat()))
+                mouse.x = xpos.toFloat()
+                mouse.y = ypos.toFloat()
             }
         }
-        val mouseScrollCallback = object : GLFWScrollCallback() {
+        val mouseScrollCallback = object :GLFWScrollCallback() {
             override fun invoke(window : Long, xoffset : Double, yoffset : Double) {
                 windowEvents.add(MouseWheelEvent(xoffset.toFloat(), yoffset.toFloat()))
             }
@@ -348,9 +352,9 @@ class GraphicsComponent(val client: VulkanClient) {
         glfwCallbacks.add(mousePosCallback)
         glfwCallbacks.add(mouseScrollCallback)
 
-        GLFW.glfwSetKeyCallback(window, keyCallback)
-        GLFW.glfwSetMouseButtonCallback(window, mouseButtonCallback)
-        GLFW.glfwSetCursorPosCallback(window, mousePosCallback)
-        GLFW.glfwSetScrollCallback(window, mouseScrollCallback)
+        glfwSetKeyCallback(window, keyCallback)
+        glfwSetMouseButtonCallback(window, mouseButtonCallback)
+        glfwSetCursorPosCallback(window, mousePosCallback)
+        glfwSetScrollCallback(window, mouseScrollCallback)
     }
 }

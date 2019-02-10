@@ -20,7 +20,9 @@ class KeyEvent(val key:Int,
                val action:KeyAction,
                val mods:KeyMods) : WindowEvent()
 
-class MouseButtonEvent(val button:Int,
+class MouseButtonEvent(val x:Float,
+                       val y:Float,
+                       val button:Int,
                        val action:KeyAction,
                        val mods:KeyMods) : WindowEvent()
 
