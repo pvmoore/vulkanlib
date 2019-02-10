@@ -24,8 +24,8 @@ class MouseButtonEvent(val button:Int,
                        val action:KeyAction,
                        val mods:KeyMods) : WindowEvent()
 
-class MouseMoveEvent(val x:Double,
-                     val y:Double) : WindowEvent()
+class MouseMoveEvent(val x:Float,
+                     val y:Float) : WindowEvent()
 
-class MouseWheelEvent(val xDelta:Double,
-                      val yDelta:Double) : WindowEvent()
+class MouseWheelEvent(val xDelta:Float,
+                      val yDelta:Float) : WindowEvent()

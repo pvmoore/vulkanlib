@@ -124,8 +124,7 @@ class GraphicsComponent(val client: VulkanClient) {
         var seconds               = 0L
         var tenSeconds            = 10L
         var previousTimestamp     = System.nanoTime()
-        val targetFrameTimeNsecs  = (1_000_000_000 / client.targetFPS).toLong()
-        val frameInfo             = FrameInfo(0, 0.0, 0.0, 1.0)
+        val frameInfo             = FrameInfo(0, 0.0, 1.0)
 
         while(!GLFW.glfwWindowShouldClose(window)) {
 
@@ -135,12 +134,12 @@ class GraphicsComponent(val client: VulkanClient) {
 
             val timestamp  = System.nanoTime()
             val frameNsecs = timestamp - previousTimestamp
+            val fps        = BILLION.toDouble() / frameNsecs.toDouble()
             previousTimestamp = timestamp
 
-            frameInfo.delta = frameNsecs.toDouble()/targetFrameTimeNsecs.toDouble()
             frameInfo.number++
-            frameInfo.relNumber += frameInfo.delta
             frameInfo.seconds   += (frameNsecs.toDouble()/BILLION)
+            frameInfo.perSecond = 1.0 / fps
 
             frameNumber = frameInfo.number
 
@@ -148,16 +147,15 @@ class GraphicsComponent(val client: VulkanClient) {
 
             if(frameInfo.seconds.toLong() > seconds) {
                 seconds = frameInfo.seconds.toLong()
-                fps = BILLION.toDouble() / frameNsecs.toDouble()
 
+                this.fps = fps
                 //val avg = frameTiming.average(2);
                 //currentFPS = 1000.0 / avg;
 
-                log.info(String.format("Frame (abs:%s, rel:%.2f) secs: %.2f delta=%.4f ms:%.3f fps:%.2f",
+                log.info(String.format("Frame: %d sec: %.2f persec=%.4f ms:%.3f fps:%.2f",
                     frameInfo.number,
-                    frameInfo.relNumber,
                     frameInfo.seconds,
-                    frameInfo.delta,
+                    frameInfo.perSecond,
                     frameNsecs/MILLION.toDouble(),
                     fps))
             }
@@ -187,7 +185,7 @@ class GraphicsComponent(val client: VulkanClient) {
         val index = swapChain.acquireNext(resource.imageAvailable)
 
         /** Update any animations */
-        animations.update(frame.delta)
+        animations.update(frame.perSecond)
 
         /** Let the app do its thing */
         client.render(frame, resource)
@@ -336,12 +334,12 @@ class GraphicsComponent(val client: VulkanClient) {
         }
         val mousePosCallback = object : GLFWCursorPosCallback() {
             override fun invoke(window : Long, xpos : Double, ypos : Double) {
-                windowEvents.add(MouseMoveEvent(xpos, ypos))
+                windowEvents.add(MouseMoveEvent(xpos.toFloat(), ypos.toFloat()))
             }
         }
         val mouseScrollCallback = object : GLFWScrollCallback() {
             override fun invoke(window : Long, xoffset : Double, yoffset : Double) {
-                windowEvents.add(MouseWheelEvent(xoffset, yoffset))
+                windowEvents.add(MouseWheelEvent(xoffset.toFloat(), yoffset.toFloat()))
             }
         }
 

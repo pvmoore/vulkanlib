@@ -16,7 +16,6 @@ abstract class VulkanClient(
     val windowTitle:String           = "Vulkan CLient",
     val enableVsync:Boolean          = false,
     val swapChainUsage:Int           = 0,
-    val targetFPS:Int                = 60,
     val prefNumSwapChainBuffers:Int  = 2)
 {
     abstract fun destroy()
