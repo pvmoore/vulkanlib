@@ -1,9 +1,5 @@
 package vulkan.misc
 
-import org.joml.Vector2f
-import org.joml.Vector2i
-import org.joml.Vector3f
-import org.joml.Vector3i
 import org.lwjgl.vulkan.EXTBlendOperationAdvanced.VK_ACCESS_COLOR_ATTACHMENT_READ_NONCOHERENT_BIT_EXT
 import org.lwjgl.vulkan.EXTConditionalRendering.*
 import org.lwjgl.vulkan.EXTFragmentDensityMap.*
@@ -30,11 +26,6 @@ fun IntBuffer.string():String {
     }
     return b.append(")").toString()
 }
-
-fun Vector2i.string():String = "(${this.x}, ${this.y})"
-fun Vector2f.string():String = String.format("(%.4f, %.4f)", this.x, this.y)
-fun Vector3i.string():String = "(${this.x}, ${this.y},${this.z})"
-fun Vector3f.string():String = String.format("(%.4f, %.4f, %.4f)", this.x, this.y, this.z)
 
 private fun Int.translateBits(map:Map<Int,String>):String {
     val buf = StringBuilder("[")

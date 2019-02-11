@@ -24,7 +24,7 @@ import org.joml.Vector2f
 import org.joml.Vector2i
 import org.joml.Vector4f
 import vulkan.maths.Degrees
-import vulkan.misc.string
+import vulkan.maths.string
 
 class Camera2D constructor(val windowSize:Vector2i = Vector2i()) {
     private var _zoomFactor         = 1f
@@ -46,21 +46,35 @@ class Camera2D constructor(val windowSize:Vector2i = Vector2i()) {
         position.y = y
         recalculateView = true
     }
+    fun moveAbs(v:Vector2f) {
+        position.x = v.x
+        position.y = v.y
+        recalculateView = true
+    }
     fun moveRel(x:Float, y:Float) {
         moveAbs(position.x+x, position.y+y)
     }
-    fun zoomOut(z:Float) {
+    fun moveRel(v:Vector2f) {
+        moveAbs(position.x+v.x, position.y+v.y)
+    }
+    fun zoomOut(z:Float, maxZoom:Float = 2f) {
+        if(_zoomFactor >= maxZoom) return
+
         _zoomFactor += z
+        if(_zoomFactor > maxZoom) {
+            _zoomFactor = maxZoom
+        }
         recalculateProj = true
     }
-    fun zoomIn(z:Float) {
-        if(_zoomFactor > 0.01f) {
-            _zoomFactor -= z
-            if(_zoomFactor < 0.01f) {
-                _zoomFactor = 0.01f
-            }
-            recalculateProj = true
+
+    fun zoomIn(z:Float, minZoom:Float = 0.01f) {
+        if(_zoomFactor <= minZoom) return
+
+        _zoomFactor -= z
+        if(_zoomFactor < minZoom) {
+            _zoomFactor = minZoom
         }
+        recalculateProj = true
     }
     /** 0.5 = zoomed out (50%), 1 = (100%) no zoom, 2 = (200%) zoomed in */
     fun setZoom(z:Float) {
@@ -89,7 +103,7 @@ class Camera2D constructor(val windowSize:Vector2i = Vector2i()) {
             assert(windowSize.x>0 && windowSize.y>0) { "windowSize has not been set" }
             val width  = windowSize.x*_zoomFactor
             val height = windowSize.y*_zoomFactor
-            proj.ortho(
+            proj.setOrtho(
                 -width/2f,   width/2f,
                 -height/2f,  height/2f,
                 0f,          100f,
@@ -101,7 +115,7 @@ class Camera2D constructor(val windowSize:Vector2i = Vector2i()) {
     }
     fun V(dest:Matrix4f? = null) {
         if(recalculateView) {
-            view.lookAt(
+            view.setLookAt(
                 position.x, position.y, 1f,  // camera _position in World Space
                 position.x, position.y, 0f,  // look at the _position
                 up.x,       up.y,       0f)  // head is up

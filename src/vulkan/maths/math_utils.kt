@@ -1,7 +1,7 @@
 package vulkan.maths
 
-import org.joml.Vector2f
-import org.joml.Vector4f
+import org.joml.*
+import java.text.DecimalFormat
 
 inline class Degrees(val value:Double) {
     fun toRadians() = (value * (Math.PI / 180.0))
@@ -23,3 +23,15 @@ var Vector4f.height
 
 
 fun Vector4f.dimension() = Vector2f(x,y)
+
+
+fun Float.string()  : String = String.format("%.4f", this)
+fun Double.string() : String = String.format("%.6f", this)
+
+fun Vector2i.string():String = "(${this.x}, ${this.y})"
+fun Vector2f.string():String = String.format("(%.4f, %.4f)", this.x, this.y)
+fun Vector3i.string():String = "(${this.x}, ${this.y},${this.z})"
+fun Vector3f.string():String = String.format("(%.4f, %.4f, %.4f)", this.x, this.y, this.z)
+
+fun Matrix4f.string() : String = this.toString(DecimalFormat("###.####"))
+

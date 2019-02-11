@@ -4,7 +4,8 @@ import org.joml.Vector2f
 import org.joml.Vector2i
 import org.lwjgl.BufferUtils
 import org.lwjgl.glfw.*
-import org.lwjgl.glfw.GLFW.*import org.lwjgl.system.Callback
+import org.lwjgl.glfw.GLFW.*
+import org.lwjgl.system.Callback
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.system.MemoryUtil
 import org.lwjgl.vulkan.KHRSurface.VK_COLOR_SPACE_SRGB_NONLINEAR_KHR
@@ -14,7 +15,11 @@ import org.lwjgl.vulkan.VkDevice
 import vulkan.api.*
 import vulkan.common.*
 import vulkan.font.Fonts
-import vulkan.misc.*
+import vulkan.maths.string
+import vulkan.misc.VkColorSpaceKHR
+import vulkan.misc.VkFormat
+import vulkan.misc.VkSurfaceKHR
+import vulkan.misc.check
 
 class GraphicsComponent(val client: VulkanClient) {
     private val glfwCallbacks           = ArrayList<Callback>()

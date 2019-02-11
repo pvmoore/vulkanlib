@@ -8,9 +8,9 @@ import vulkan.common.RenderContext
 import vulkan.common.SpecConstants
 import vulkan.common.Transferable
 import vulkan.common.log
+import vulkan.maths.string
 import vulkan.misc.VkPrimitiveTopology
 import vulkan.misc.VkShaderStageFlags
-import vulkan.misc.string
 import kotlin.test.assertNull
 
 class GraphicsPipeline {

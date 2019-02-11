@@ -27,6 +27,9 @@ class InputState {
         mouseY = 0f
         mouseWheelY = 0f
     }
+    fun resetMouseWheel() {
+        mouseWheelY = 0f
+    }
 
     /**
      * Update properties given the list of events.
