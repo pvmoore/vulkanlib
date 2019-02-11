@@ -147,6 +147,17 @@ private class GraphicsApplication : VulkanClient(
     }
     //=====================================================================================================
     private fun update() {
+
+        vk.graphics.inputState.drag.delta?.let {
+            println("drag = ${it.string()}")
+
+            if(vk.graphics.inputState.drag.start==null) {
+                println("Drag finished at ${it.string()}")
+                vk.graphics.inputState.drag.reset()
+            }
+            System.out.flush()
+        }
+
         vk.graphics.drainWindowEvents().forEach {
             if(it is KeyEvent && it.key == GLFW.GLFW_KEY_ESCAPE) {
                 vk.graphics.postCloseMessage()

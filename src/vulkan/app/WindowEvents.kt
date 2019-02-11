@@ -11,8 +11,9 @@ class KeyMods(mods:Int) {
     val alt   = (mods and GLFW_MOD_ALT) != 0
 }
 class KeyAction(action:Int) {
-    val press  = action == GLFW_PRESS
-    val repeat = action == GLFW_REPEAT
+    val press   = action == GLFW_PRESS
+    val release = action == GLFW_RELEASE
+    val repeat  = action == GLFW_REPEAT
 }
 
 class KeyEvent(val key:Int,
@@ -20,9 +21,7 @@ class KeyEvent(val key:Int,
                val action:KeyAction,
                val mods:KeyMods) : WindowEvent()
 
-class MouseButtonEvent(val x:Float,
-                       val y:Float,
-                       val button:Int,
+class MouseButtonEvent(val button:Int,
                        val action:KeyAction,
                        val mods:KeyMods) : WindowEvent()
 

@@ -31,10 +31,10 @@ fun IntBuffer.string():String {
     return b.append(")").toString()
 }
 
-fun Vector2i.string():String = "(${this.x},${this.y})"
-fun Vector2f.string():String = "(${this.x},${this.y})"
-fun Vector3i.string():String = "(${this.x},${this.y},${this.z})"
-fun Vector3f.string():String = "(${this.x},${this.y},${this.z})"
+fun Vector2i.string():String = "(${this.x}, ${this.y})"
+fun Vector2f.string():String = String.format("(%.4f, %.4f)", this.x, this.y)
+fun Vector3i.string():String = "(${this.x}, ${this.y},${this.z})"
+fun Vector3f.string():String = String.format("(%.4f, %.4f, %.4f)", this.x, this.y, this.z)
 
 private fun Int.translateBits(map:Map<Int,String>):String {
     val buf = StringBuilder("[")

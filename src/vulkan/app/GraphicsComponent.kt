@@ -1,5 +1,6 @@
 package vulkan.app
 
+import org.joml.Vector2f
 import org.joml.Vector2i
 import org.lwjgl.BufferUtils
 import org.lwjgl.glfw.*
@@ -31,7 +32,7 @@ class GraphicsComponent(val client: VulkanClient) {
     val animations    = Animations
     val fonts         = Fonts
     var isInitialised = false
-    val mouse         = Mouse(0f, 0f, arrayOf(null,null,null))
+    val inputState    = InputState()
 
     lateinit var swapChain: SwapChain
     lateinit var renderPass: VkRenderPass
@@ -99,6 +100,9 @@ class GraphicsComponent(val client: VulkanClient) {
         val list = windowEvents.toList()
         windowEvents.clear()
         return list
+    }
+    fun peekAtWindowEvents() : List<WindowEvent> {
+        return windowEvents.toList()
     }
     fun peekAtWindowEvents(type:WindowEvent) : List<WindowEvent> {
         return windowEvents.filter { it.javaClass == type.javaClass }
@@ -320,30 +324,46 @@ class GraphicsComponent(val client: VulkanClient) {
 
         val keyCallback = object :GLFWKeyCallback() {
             override fun invoke(window : Long, key : Int, scancode : Int, action : Int, mods : Int) {
-                windowEvents.add(KeyEvent(key, scancode, KeyAction(action), KeyMods(mods)))
+                KeyEvent(key, scancode, KeyAction(action), KeyMods(mods)).run {
+                    windowEvents.add(this)
+                    inputState.update(this)
+                }
             }
         }
         val mouseButtonCallback = object :GLFWMouseButtonCallback() {
             override fun invoke(window : Long, button : Int, action : Int, mods : Int) {
-                windowEvents.add(MouseButtonEvent(mouse.x, mouse.y, button, KeyAction(action), KeyMods(mods)))
-                if(button < mouse.buttons.size) {
-                    mouse.buttons[button] = when(action) {
-                        GLFW_PRESS -> KeyMods(mods)
-                        else       -> null
-                    }
+                MouseButtonEvent(button, KeyAction(action), KeyMods(mods)).run {
+                    windowEvents.add(this)
+                    inputState.update(this)
+                }
+
+                // Handle dragging
+                if(action == GLFW_RELEASE) {
+                    inputState.drag.start = null
+                } else {
+                    inputState.drag.delta = null
+                    inputState.drag.start = Vector2f(inputState.mouseX, inputState.mouseY)
                 }
             }
         }
         val mousePosCallback = object :GLFWCursorPosCallback() {
             override fun invoke(window : Long, xpos : Double, ypos : Double) {
-                windowEvents.add(MouseMoveEvent(xpos.toFloat(), ypos.toFloat()))
-                mouse.x = xpos.toFloat()
-                mouse.y = ypos.toFloat()
+                MouseMoveEvent(xpos.toFloat(), ypos.toFloat()).run {
+                    windowEvents.add(this)
+                    inputState.update(this)
+                }
+                // This is now a confirmed drag
+                if(inputState.isMouseButtonDown(0)) {
+                    inputState.drag.delta = Vector2f(inputState.mouseX, inputState.mouseY).sub(inputState.drag.start)
+                }
             }
         }
         val mouseScrollCallback = object :GLFWScrollCallback() {
             override fun invoke(window : Long, xoffset : Double, yoffset : Double) {
-                windowEvents.add(MouseWheelEvent(xoffset.toFloat(), yoffset.toFloat()))
+                MouseWheelEvent(xoffset.toFloat(), yoffset.toFloat()).run {
+                    windowEvents.add(this)
+                    inputState.update(this)
+                }
             }
         }
 
