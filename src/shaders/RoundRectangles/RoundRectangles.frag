@@ -22,7 +22,6 @@ void main() {
     vec2 size = inRectSize;
     vec2 mid  = size/2;
 
-    vec2 top    = inRadius.xx;
     float alpha = inColor.a;
 
     if(pos.x>mid.x) {
@@ -32,10 +31,12 @@ void main() {
         pos.y = size.y-pos.y;
     }
 
-    float dfc = distance(pos, top);
+    float dfc = distance(pos, inRadius.xx);
 
     if(pos.x<inRadius && pos.y<inRadius) {
         // we are in a corner
+        if(dfc > inRadius) discard;
+
         float v = inRadius-dfc;
         alpha = clamp(v, 0, alpha);
     }
