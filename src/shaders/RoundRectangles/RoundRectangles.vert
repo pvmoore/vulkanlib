@@ -5,31 +5,30 @@
 #extension GL_GOOGLE_include_directive : require
 
 // input
-layout(location = 0) in vec2 inPos;
-layout(location = 1) in vec2 inSize;
-layout(location = 2) in vec4 inColor1;
-layout(location = 3) in vec4 inColor2;
-layout(location = 4) in vec4 inColor3;
-layout(location = 5) in vec4 inColor4;
-layout(location = 6) in float inRadius;
+layout(location = 0) in vec2  inPos;
+layout(location = 1) in vec2  inRectPos;
+layout(location = 2) in vec2  inRectSize;
+layout(location = 3) in vec4  inColor;
+layout(location = 4) in float inRadius;
 
 // output
-layout(location = 0) out vec2 outPos;
-layout(location = 1) out vec2 outSize;
-layout(location = 2) out vec4 outColor1;
-layout(location = 3) out vec4 outColor2;
-layout(location = 4) out vec4 outColor3;
-layout(location = 5) out vec4 outColor4;
-layout(location = 6) out float outRadius;
+layout(location = 0) out vec2 outPixelPos;
+layout(location = 1) out flat vec2 outPos;
+layout(location = 2) out flat vec2 outSize;
+layout(location = 3) out vec4 outColor;
+layout(location = 4) out float outRadius;
 
 // bindings
+layout(binding = 0, std140) uniform UBO {
+    mat4 viewProj;
+} ubo;
 
 void main() {
-    outPos     = inPos;
-    outSize    = inSize;
-    outColor1  = inColor1;
-    outColor2  = inColor2;
-    outColor3  = inColor3;
-    outColor4  = inColor4;
-    outRadius  = inRadius;
+    gl_Position = ubo.viewProj * vec4(inPos, 0, 1);
+
+    outPixelPos = inPos;
+    outPos      = inRectPos;
+    outSize     = inRectSize;
+    outColor    = inColor;
+    outRadius   = inRadius;
 }

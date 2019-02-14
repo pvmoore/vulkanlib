@@ -1,6 +1,7 @@
 
 import org.joml.Matrix4f
 import org.joml.Vector2f
+import org.joml.Vector4f
 import org.lwjgl.glfw.GLFW
 import org.lwjgl.vulkan.VK10.VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
 import org.lwjgl.vulkan.VkClearValue
@@ -250,48 +251,67 @@ private class GraphicsApplication : VulkanClient(
         val orange  = RGBA(0.7f, 0.4f, 0.1f, 1f) * 0.75f
         val black   = RGBA(0f, 0f, 0f, 0f)
         val magenta = BLUE.blend(RED).gamma(0.7f)
+        val blue    = RGBA(0.3f, 0.5f, 0.7f, 1f)
 
         roundRectangles
             .init(context, 100)
             .camera(camera)
             .setColour(RGBA(0.3f, 0.5f, 0.7f, 1f))
-            .addRectangle(Vector2f(650f,350f), Vector2f(150f,100f), 7f)
+
+            .addRectangle(Vector2f(650f,350f), Vector2f(50f,50f),
+                          WHITE, blue,
+                          blue, blue,
+                          Vector4f(15f,0f,0f,0f))
+            .addRectangle(Vector2f(710f,350f), Vector2f(50f,50f),
+                          blue, WHITE,
+                          blue, blue,
+                          Vector4f(0f, 15f,0f,0f))
+            .addRectangle(Vector2f(650f,410f), Vector2f(50f,50f),
+                          blue, blue,
+                          blue, WHITE,
+                          Vector4f(0f,0f,0f,15f))
+            .addRectangle(Vector2f(710f,410f), Vector2f(50f,50f),
+                          blue, blue,
+                          WHITE, blue,
+                          Vector4f(0f, 0f,15f,0f))
+
             .addRectangle(Vector2f(650f,200f), Vector2f(150f,100f),
                 orange,orange*3f,
                 orange,orange*3f,
-                30f)
+                Vector4f(30f,30f,30f,30f))
             .addRectangle(Vector2f(820f,200f), Vector2f(150f,100f),
                 orange*3f,orange*3f,
                 orange,orange,
-                30f)
+                Vector4f(30f,30f,30f,30f))
             // capsule
             .addRectangle(Vector2f(1000f,220f), Vector2f(150f,60f),
                 WHITE,WHITE,
                 black,black,
-                30f)
+                Vector4f(30f,30f,30f,30f))
             .addRectangle(Vector2f(1000f,220f), Vector2f(150f,60f),
                 black,black,
                 WHITE,WHITE,
-                30f)
+                Vector4f(30f,30f,30f,30f))
+
             // white border
             .addRectangle(Vector2f(1170f,200f), Vector2f(150f,100f),
                 WHITE*0.8f, WHITE,
                 WHITE*0.8f, black+0.5f,
-                32f)
+                Vector4f(32f,32f,32f,32f))
             .addRectangle(Vector2f(1175f,204f), Vector2f(140f,92f),
                 orange, orange,
                 orange,orange,
-                30f)
+                Vector4f(30f,30f,30f,30f))
 
             // White border
             .addRectangle(Vector2f(1170f,320f), Vector2f(100f,100f),
                           WHITE.gamma(0.7f), WHITE.gamma(2f),
-                          WHITE.gamma(0.7f), WHITE.gamma(0.05f),
-                      32f)
+                          WHITE.gamma(0.7f), WHITE.gamma(0.1f),
+                          Vector4f(35f,35f,35f,0f))
             .addRectangle(Vector2f(1175f,325f), Vector2f(90f,90f),
                           magenta, magenta,
-                          magenta.alpha(0.5f), magenta.alpha(0.5f),
-                          30f)
+                          magenta, magenta.alpha(0.2f),
+                          Vector4f(32f,32f,32f,0f))
 
         text.init(context, vk.graphics.fonts.get("segoeprint"), 10000, true)
             .camera(camera)

@@ -11,6 +11,7 @@ import vulkan.api.draw
 import vulkan.api.pipeline.GraphicsPipeline
 import vulkan.api.pipeline.bindPipeline
 import vulkan.common.*
+import vulkan.maths.string
 import vulkan.misc.RGBA
 import vulkan.misc.WHITE
 import vulkan.misc.orThrow
@@ -52,19 +53,19 @@ class RoundRectangles {
         this.colour = c
         return this
     }
-    fun addRectangle(pos:Vector2f, size:Vector2f, cornerRadius:Float) : RoundRectangles {
+    fun addRectangle(pos:Vector2f, size:Vector2f, cornerRadius:Vector4f) : RoundRectangles {
         return addRectangle(pos, size, colour, colour, colour, colour, cornerRadius)
     }
     fun addRectangle(pos:Vector2f, size:Vector2f,
                      c1:RGBA, c2:RGBA, c3:RGBA, c4:RGBA,
-                     cornerRadius:Float) : RoundRectangles
+                     cornerRadius:Vector4f) : RoundRectangles
     {
-        vertices.add()
+        vertices.addRectangle()
         return updateRectangle(vertices.numRectangles-1, pos, size, c1,c2,c3,c4, cornerRadius)
     }
     fun updateRectangle(index:Int, pos:Vector2f, size:Vector2f,
                         c1:RGBA, c2:RGBA, c3:RGBA, c4:RGBA,
-                        cornerRadius:Float) : RoundRectangles
+                        cornerRadius:Vector4f) : RoundRectangles
     {
         vertices.update(index, pos, size, c1,c2,c3,c4, cornerRadius)
         verticesChanged = true
@@ -121,7 +122,7 @@ class RoundRectangles {
         descriptors
             .init(context)
             .createLayout()
-            .uniformBuffer(VK_SHADER_STAGE_GEOMETRY_BIT)
+            .uniformBuffer(VK_SHADER_STAGE_VERTEX_BIT)
             .numSets(1)
             .build()
 
@@ -132,10 +133,9 @@ class RoundRectangles {
             .write()
 
         pipeline.init(context)
-            .withVertexInputState(vertices.elementInstance(), VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
+            .withVertexInputState(vertices.elementInstance(), VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .withDSLayouts(arrayOf(descriptors.layout(0).dsLayout))
             .withShader(VK_SHADER_STAGE_VERTEX_BIT,   "RoundRectangles/RoundRectangles.vert")
-            .withShader(VK_SHADER_STAGE_GEOMETRY_BIT, "RoundRectangles/RoundRectangles.geom")
             .withShader(VK_SHADER_STAGE_FRAGMENT_BIT, "RoundRectangles/RoundRectangles.frag")
             .withStandardColorBlend()
             .build()
@@ -169,49 +169,64 @@ class RoundRectangles {
             uniformBuffer.free()
         }
     }
-    /** Each vertex is a single POINT */
     private class Vertices : AbsTransferableArray() {
-        private class Vertex(val pos    : Vector2f,
-                             val size   : Vector2f,
-                             val c1     : Vector4f,
-                             val c2     : Vector4f,
-                             val c3     : Vector4f,
-                             val c4     : Vector4f,
-                             var radius : Float) : AbsTransferable()
+        private class Vertex(val pos      : Vector2f,
+                             val rectPos  : Vector2f,
+                             val rectSize : Vector2f,
+                             val colour   : Vector4f,
+                             var radius   : Float) : AbsTransferable()
 
         private val array = ArrayList<Vertex>()
 
         override fun getArray() = array.toTypedArray()
         override fun elementInstance() =
-            Vertex(Vector2f(), Vector2f(), Vector4f(), Vector4f(), Vector4f(), Vector4f(), 0f)
+            Vertex(Vector2f(), Vector2f(), Vector2f(), Vector4f(), 0f)
 
         val numVertices get()   = array.size
-        val numRectangles get() = array.size
-        val vertexSize          = 21*4
+        val numRectangles get() = array.size / 6
+        val vertexSize          = 11*4
 
         fun removeAll() {
             array.clear()
         }
-        fun add() {
-            array.add(Vertex(Vector2f(), Vector2f(), Vector4f(), Vector4f(), Vector4f(), Vector4f(), 0f))
+        fun addRectangle() {
+            (0 until 6).forEach {
+                array.add(Vertex(Vector2f(), Vector2f(), Vector2f(), Vector4f(), 0f))
+            }
         }
         fun update(index:Int,
                    pos: Vector2f,
                    size: Vector2f,
                    c1: RGBA, c2: RGBA, c3: RGBA, c4: RGBA,
-                   cornerRadius:Float)
+                   cornerRadius:Vector4f)
         {
             assert(index<numRectangles)
 
-            array[index].let {
-                it.pos.set(pos)
-                it.size.set(size)
-                it.c1.set(c1)
-                it.c2.set(c2)
-                it.c3.set(c3)
-                it.c4.set(c4)
-                it.radius = cornerRadius
+            println("cornerRadius = ${cornerRadius.string()}")
+
+            val i = index*6
+
+            //  1--2    1,2,4  2,3,4
+            //  | /|
+            //  |/ |
+            //  4--3
+            for(j in 0 until 6) {
+                array[i+j].let { it.rectPos.set(pos); it.rectSize.set(size) }
             }
+
+            //1
+            array[i].let { it.pos.set(pos); it.colour.set(c1); it.radius = cornerRadius.x }
+            //2
+            array[i+1].let { it.pos.set(pos).add(size.x, 0f); it.colour.set(c2); it.radius = cornerRadius.y }
+            //4
+            array[i+2].let { it.pos.set(pos).add(0f, size.y); it.colour.set(c4); it.radius = cornerRadius.w }
+
+            //2
+            array[i+3].let { it.pos.set(pos).add(size.x, 0f); it.colour.set(c2); it.radius = cornerRadius.y }
+            //3
+            array[i+4].let { it.pos.set(pos).add(size); it.colour.set(c3); it.radius = cornerRadius.z }
+            //4
+            array[i+5].let { it.pos.set(pos).add(0f, size.y); it.colour.set(c4); it.radius = cornerRadius.w }
         }
     }
     private class UBO(val viewProj: Matrix4f = Matrix4f()) : AbsTransferable()

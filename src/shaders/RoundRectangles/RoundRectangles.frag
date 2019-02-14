@@ -6,10 +6,10 @@
 
 // inputs
 layout(location = 0) in vec2 inPixelPos;
-layout(location = 1) in flat vec2 inPos;
-layout(location = 2) in flat vec2 inSize;
+layout(location = 1) in flat vec2 inRectPos;
+layout(location = 2) in flat vec2 inRectSize;
 layout(location = 3) in vec4 inColor;
-layout(location = 4) in flat float inRadius;
+layout(location = 4) in float inRadius;
 
 // outputs
 layout(location = 0) out vec4 outColor;
@@ -18,8 +18,8 @@ layout(location = 0) out vec4 outColor;
 
 void main() {
     // assuming an axis-aligned rectangle
-    vec2 pos  = inPixelPos-inPos;
-    vec2 size = inSize;
+    vec2 pos  = inPixelPos-inRectPos;
+    vec2 size = inRectSize;
     vec2 mid  = size/2;
 
     vec2 top    = inRadius.xx;

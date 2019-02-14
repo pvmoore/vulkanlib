@@ -32,6 +32,7 @@ fun Vector2i.string():String = "(${this.x}, ${this.y})"
 fun Vector2f.string():String = String.format("(%.4f, %.4f)", this.x, this.y)
 fun Vector3i.string():String = "(${this.x}, ${this.y},${this.z})"
 fun Vector3f.string():String = String.format("(%.4f, %.4f, %.4f)", this.x, this.y, this.z)
+fun Vector4f.string():String = String.format("(%.4f, %.4f, %.4f, %.4f)", this.x, this.y, this.z, this.w)
 
 fun Matrix4f.string() : String = this.toString(DecimalFormat("###.####"))
 
