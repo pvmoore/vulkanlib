@@ -1,6 +1,5 @@
 
 import org.joml.Matrix4f
-import org.joml.Vector4i
 import org.lwjgl.glfw.GLFW
 import org.lwjgl.vulkan.VK10.VK_FORMAT_R8_UNORM
 import org.lwjgl.vulkan.VK10.VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
@@ -152,7 +151,7 @@ private class TestCreateNoiseTexture : VulkanClient(
                 vk.graphics.renderPass,
                 res.frameBuffer,
                 clearColour,
-                Vector4i(0, 0, vk.graphics.windowSize.x, vk.graphics.windowSize.y),
+                vk.graphics.swapChain.area,
                 true
             )
 
@@ -165,11 +164,11 @@ private class TestCreateNoiseTexture : VulkanClient(
 
             /** Submit render buffer */
             vk.queues.get(Queues.GRAPHICS).submit(
-                arrayOf(b),
-                arrayOf(res.imageAvailable),                                // wait semaphores
-                intArrayOf(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT),  // wait stages
-                arrayOf(res.renderFinished),    // signal semaphores
-                res.fence                       // fence
+                cmdBuffers       = arrayOf(b),
+                waitSemaphores   = arrayOf(res.imageAvailable),
+                waitStages       = intArrayOf(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT),
+                signalSemaphores = arrayOf(res.renderFinished),
+                fence            = res.fence
             )
         }
     }

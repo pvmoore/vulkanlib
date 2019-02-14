@@ -1,15 +1,13 @@
 
 import org.joml.Matrix4f
 import org.joml.Vector2f
-import org.joml.Vector4i
 import org.lwjgl.glfw.GLFW
 import org.lwjgl.vulkan.VK10.VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
 import org.lwjgl.vulkan.VkClearValue
 import org.lwjgl.vulkan.VkDevice
 import org.lwjgl.vulkan.VkPhysicalDeviceFeatures
 import vulkan.api.*
-import vulkan.app.KeyEvent
-import vulkan.app.VulkanApplication
+import vulkan.app.*
 import vulkan.common.*
 import vulkan.d2.*
 import vulkan.maths.string
@@ -127,7 +125,7 @@ private class GraphicsApplication : VulkanClient(
             vk.graphics.renderPass,
             res.frameBuffer,
             clearColour,
-            Vector4i(0,0, vk.graphics.windowSize.x, vk.graphics.windowSize.y),
+            vk.graphics.swapChain.area,
             true
         )
 
@@ -149,19 +147,23 @@ private class GraphicsApplication : VulkanClient(
     //=====================================================================================================
     private fun update() {
 
-        vk.graphics.inputState.drag.delta?.let {
-            println("drag = ${it.string()}")
-
-            if(vk.graphics.inputState.drag.start==null) {
-                println("Drag finished at ${it.string()}")
-                vk.graphics.inputState.drag.reset()
-            }
-            System.out.flush()
-        }
-
         vk.graphics.drainWindowEvents().forEach {
-            if(it is KeyEvent && it.key == GLFW.GLFW_KEY_ESCAPE) {
-                vk.graphics.postCloseMessage()
+            when(it) {
+                is KeyEvent       -> {
+                    if(it.key == GLFW.GLFW_KEY_ESCAPE) vk.graphics.postCloseMessage()
+                }
+                is MouseDragStart -> {
+                    println("Start drag: ${it.pos.string()}")
+                    System.out.flush()
+                }
+                is MouseDrag      -> {
+                    println("drag: ${it.delta.string()}")
+                    System.out.flush()
+                }
+                is MouseDragEnd   -> {
+                    println("End drag: ${it.delta.string()}")
+                    System.out.flush()
+                }
             }
         }
     }

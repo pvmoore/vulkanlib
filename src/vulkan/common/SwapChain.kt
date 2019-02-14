@@ -1,6 +1,7 @@
 package vulkan.common
 
 import org.joml.Vector2i
+import org.joml.Vector4i
 import org.lwjgl.system.MemoryStack
 import org.lwjgl.system.MemoryStack.stackGet
 import org.lwjgl.system.MemoryUtil.memAllocInt
@@ -31,6 +32,7 @@ class SwapChain(private val vk: VulkanApplication,
     private val handle:VkSwapchainKHR
 
     val extent       = Vector2i()
+    val area         = Vector4i()
     val images       = ArrayList<VkImage>()
     val views        = ArrayList<VkImageView>()
     val frameBuffers = ArrayList<VkFrameBuffer>()
@@ -193,6 +195,12 @@ class SwapChain(private val vk: VulkanApplication,
             this.extent.apply {
                 x = width
                 y = height
+            }
+            this.area.apply {
+                x = 0
+                y = 0
+                z = width
+                w = height
             }
 
             numImages = vk.client.prefNumSwapChainBuffers.clamp(caps.minImageCount(), caps.maxImageCount())

@@ -1,6 +1,5 @@
 
 import org.joml.Vector2i
-import org.joml.Vector4i
 import org.lwjgl.glfw.GLFW
 import org.lwjgl.vulkan.*
 import org.lwjgl.vulkan.VK10.*
@@ -227,7 +226,7 @@ private class ComputeSimpleBufferCopy : VulkanClient(
             vk.graphics.renderPass,
             res.frameBuffer,
             clearColour,
-            Vector4i(0,0, vk.graphics.windowSize.x, vk.graphics.windowSize.y),
+            vk.graphics.swapChain.area,
             true
         );
 

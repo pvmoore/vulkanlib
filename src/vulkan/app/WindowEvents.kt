@@ -1,6 +1,7 @@
 package vulkan.app
 
 
+import org.joml.Vector2f
 import org.lwjgl.glfw.GLFW.*
 
 abstract class WindowEvent
@@ -30,3 +31,9 @@ class MouseMoveEvent(val x:Float,
 
 class MouseWheelEvent(val xDelta:Float,
                       val yDelta:Float) : WindowEvent()
+
+class MouseDragStart(val pos:Vector2f) : WindowEvent()
+
+class MouseDrag(val delta: Vector2f) : WindowEvent()
+
+class MouseDragEnd(val delta:Vector2f) : WindowEvent()

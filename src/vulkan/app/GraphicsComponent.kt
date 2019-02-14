@@ -33,9 +33,10 @@ class GraphicsComponent(val client: VulkanClient) {
     private lateinit var device: VkDevice
     private lateinit var commandPool: VkCommandPool
 
-    private var seconds           = 0L
-    private var tenSeconds        = 10L
-    private var previousTimestamp = System.nanoTime()
+    private var seconds             = 0L
+    private var tenSeconds          = 10L
+    private var previousTimestamp   = System.nanoTime()
+    private var dragStart:Vector2f? = null
 
     val surfaceFormat = SurfaceFormat()
     val animations    = Animations
@@ -347,10 +348,13 @@ class GraphicsComponent(val client: VulkanClient) {
 
                 // Handle dragging
                 if(action == GLFW_RELEASE) {
-                    inputState.drag.start = null
+                    if(dragStart != null) {
+                        windowEvents.add(MouseDragEnd(Vector2f(inputState.mouseX, inputState.mouseY).sub(dragStart)))
+                    }
+                    dragStart = null
                 } else {
-                    inputState.drag.delta = null
-                    inputState.drag.start = Vector2f(inputState.mouseX, inputState.mouseY)
+                    dragStart = Vector2f(inputState.mouseX, inputState.mouseY)
+                    windowEvents.add(MouseDragStart(Vector2f(inputState.mouseX, inputState.mouseY)))
                 }
             }
         }
@@ -362,7 +366,7 @@ class GraphicsComponent(val client: VulkanClient) {
                 }
                 // This is now a confirmed drag
                 if(inputState.isMouseButtonDown(0)) {
-                    inputState.drag.delta = Vector2f(inputState.mouseX, inputState.mouseY).sub(inputState.drag.start)
+                    windowEvents.add(MouseDrag(Vector2f(inputState.mouseX, inputState.mouseY).sub(dragStart)))
                 }
             }
         }
