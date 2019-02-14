@@ -245,8 +245,9 @@ private class GraphicsApplication : VulkanClient(
                 WHITE, BLUE, RED, GREEN
             )
 
-        val orange = RGBA(0.7f, 0.4f, 0.1f, 1f) * 0.75f
-        val black  = RGBA(0f, 0f, 0f, 0f)
+        val orange  = RGBA(0.7f, 0.4f, 0.1f, 1f) * 0.75f
+        val black   = RGBA(0f, 0f, 0f, 0f)
+        val magenta = BLUE.blend(RED).gamma(0.7f)
 
         roundRectangles
             .init(context, 100)
@@ -279,6 +280,16 @@ private class GraphicsApplication : VulkanClient(
                 orange, orange,
                 orange,orange,
                 30f)
+
+            // White border
+            .addRectangle(Vector2f(1170f,320f), Vector2f(100f,100f),
+                          WHITE.gamma(0.7f), WHITE.gamma(2f),
+                          WHITE.gamma(0.7f), WHITE.gamma(0.05f),
+                      32f)
+            .addRectangle(Vector2f(1175f,325f), Vector2f(90f,90f),
+                          magenta, magenta,
+                          magenta.alpha(0.5f), magenta.alpha(0.5f),
+                          30f)
 
         text.init(context, vk.graphics.fonts.get("segoeprint"), 10000, true)
             .camera(camera)

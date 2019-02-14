@@ -45,13 +45,19 @@ data class RGBA(val r:Float, val g:Float, val b:Float, val a:Float) {
     constructor(r:Float, g:Float, b:Float) : this(r, g, b, 1f)
     constructor(v: Vector4f) : this(v.x, v.y, v.z, v.w)
 
-    fun gamma(f:Float):RGBA = RGBA(r*f,g*f,b*f,a*f)
+    fun gamma(f:Float):RGBA = RGBA(r*f,g*f,b*f,a)
 
     operator fun times(f:Float) : RGBA {
         return RGBA(r*f,g*f,b*f,a*f)
     }
     operator fun plus(f:Float) : RGBA {
         return RGBA(r+f,g+f,b+f,a+f)
+    }
+    fun blend(o : RGBA) : RGBA {
+        return RGBA((r + o.r) / 2, (g + o.g) / 2, (b + o.b) / 2, (a + o.a) / 2)
+    }
+    fun alpha(a : Float) : RGBA {
+        return RGBA(r, g, b, a)
     }
 }
 fun RGBA.toVector4f() = Vector4f(r,g,b,a)

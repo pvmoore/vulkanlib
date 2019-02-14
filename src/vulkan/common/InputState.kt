@@ -62,7 +62,6 @@ class InputState {
     }
     //=========================================================================================
     class Drag {
-        var isDragging      = false
         var start:Vector2f? = null
         var delta:Vector2f? = null
 

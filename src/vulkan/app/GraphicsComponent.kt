@@ -33,6 +33,10 @@ class GraphicsComponent(val client: VulkanClient) {
     private lateinit var device: VkDevice
     private lateinit var commandPool: VkCommandPool
 
+    private var seconds           = 0L
+    private var tenSeconds        = 10L
+    private var previousTimestamp = System.nanoTime()
+
     val surfaceFormat = SurfaceFormat()
     val animations    = Animations
     val fonts         = Fonts
@@ -125,54 +129,17 @@ class GraphicsComponent(val client: VulkanClient) {
 
     fun enterLoop() {
         log.info("Entering mainLoop")
-        var frameNumber           = 0L
-        var seconds               = 0L
-        var tenSeconds            = 10L
-        var previousTimestamp     = System.nanoTime()
-        val frameInfo             = FrameInfo(0, 0.0, 1.0)
+
+        val frameInfo = FrameInfo(0, 0.0, 1.0)
+        previousTimestamp = System.nanoTime()
 
         while(!glfwWindowShouldClose(window)) {
 
             renderFrame(frameInfo)
 
             glfwPollEvents()
-
-            val timestamp  = System.nanoTime()
-            val frameNsecs = timestamp - previousTimestamp
-            val fps        = BILLION.toDouble() / frameNsecs.toDouble()
-            previousTimestamp = timestamp
-
-            frameInfo.number++
-            frameInfo.seconds   += (frameNsecs.toDouble()/BILLION)
-            frameInfo.perSecond = 1.0 / fps
-
-            frameNumber = frameInfo.number
-
-            //frameTiming.endFrame(frameNsecs);
-
-            if(frameInfo.seconds.toLong() > seconds) {
-                seconds = frameInfo.seconds.toLong()
-
-                this.fps = fps
-                //val avg = frameTiming.average(2);
-                //currentFPS = 1000.0 / avg;
-
-                log.info(String.format("Frame: %d sec: %.2f persec=%.4f ms:%.3f fps:%.2f",
-                    frameInfo.number,
-                    frameInfo.seconds,
-                    frameInfo.perSecond,
-                    frameNsecs/MILLION.toDouble(),
-                    fps))
-            }
-            if(frameInfo.seconds.toLong() >= tenSeconds) {
-                tenSeconds = frameInfo.seconds.toLong() + 10
-
-                val totalMem = Runtime.getRuntime().totalMemory()
-                val freeMem  = Runtime.getRuntime().freeMemory()
-                log.info("VM memory usage: Used ${(totalMem-freeMem)/ MEGABYTE} / ${totalMem/ MEGABYTE} MB")
-            }
         }
-        log.info("Exiting mainLoop on frame $frameNumber")
+        log.info("Exiting mainLoop on frame ${frameInfo.number}")
     }
     //=======================================================================================
     private fun renderFrame(frame: FrameInfo) {
@@ -189,6 +156,8 @@ class GraphicsComponent(val client: VulkanClient) {
         /** Get the next available image view */
         val index = swapChain.acquireNext(resource.imageAvailable)
 
+        updateTiming(frame)
+
         /** Update any animations */
         animations.update(frame.perSecond)
 
@@ -200,6 +169,40 @@ class GraphicsComponent(val client: VulkanClient) {
             queue          = vk.queues.get(Queues.GRAPHICS),
             imageIndex     = index,
             waitSemaphores = arrayOf(resource.renderFinished))
+    }
+    private fun updateTiming(frame:FrameInfo) {
+        val timestamp  = System.nanoTime()
+        val frameNsecs = timestamp - previousTimestamp
+        val fps        = BILLION.toDouble() / frameNsecs.toDouble()
+        previousTimestamp = timestamp
+
+        frame.number++
+        frame.seconds   += (frameNsecs.toDouble()/BILLION)
+        frame.perSecond = 1.0 / fps
+
+        //frameTiming.endFrame(frameNsecs);
+
+        if(frame.seconds.toLong() > seconds) {
+            seconds = frame.seconds.toLong()
+
+            this.fps = fps
+            //val avg = frameTiming.average(2);
+            //currentFPS = 1000.0 / avg;
+
+            log.info(String.format("Frame: %d sec: %.2f persec=%.5f ms:%.4f fps:%.2f",
+                                   frame.number,
+                                   frame.seconds,
+                                   frame.perSecond,
+                                   frameNsecs/MILLION.toDouble(),
+                                   fps))
+        }
+        if(frame.seconds.toLong() >= tenSeconds) {
+            tenSeconds = frame.seconds.toLong() + 10
+
+            val totalMem = Runtime.getRuntime().totalMemory()
+            val freeMem  = Runtime.getRuntime().freeMemory()
+            log.info("VM memory usage: Used ${(totalMem-freeMem)/ MEGABYTE} / ${totalMem/ MEGABYTE} MB")
+        }
     }
     private fun createWindow() {
         glfwDefaultWindowHints()
