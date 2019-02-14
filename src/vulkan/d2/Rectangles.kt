@@ -97,7 +97,7 @@ class Rectangles {
     fun insideRenderPass(frame: FrameInfo, res: PerFrameResource) {
         if(vertices.numRectangles==0) return
 
-        res.adhocCB.run {
+        res.cmd.run {
             bindPipeline(pipeline)
             bindDescriptorSets(
                 pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -149,7 +149,7 @@ class Rectangles {
     }
     private fun updateVertices(res:PerFrameResource) {
         vertices.transfer(
-            res.adhocCB,
+            res.cmd,
             buffers.stagingVertices.rangeOf(0, vertices.size()),
             buffers.vertexBuffer.rangeOf(0,vertices.size()))
         verticesChanged = false
@@ -157,7 +157,7 @@ class Rectangles {
         log.info("Updated ${vertices.numRectangles} rectangles")
     }
     private fun updateUBO(res : PerFrameResource) {
-        ubo.transfer(res.adhocCB, buffers.stagingUniform, buffers.uniformBuffer)
+        ubo.transfer(res.cmd, buffers.stagingUniform, buffers.uniformBuffer)
         uboChanged = false
     }
 

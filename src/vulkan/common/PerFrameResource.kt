@@ -12,7 +12,7 @@ data class PerFrameResource(
     val image: VkImage,             /** Current swapchain image */
     val imageView: VkImageView,     /** Current swapchain image view */
     val frameBuffer: VkFrameBuffer, /** Current framebuffer */
-    val adhocCB: VkCommandBuffer,   /** Use this for adhoc commands per frame on the graphics queue */
+    val cmd: VkCommandBuffer,       /** Use this for adhoc commands per frame on the graphics queue */
     val imageAvailable: VkSemaphore,
     val renderFinished: VkSemaphore,
     val fence: VkFence

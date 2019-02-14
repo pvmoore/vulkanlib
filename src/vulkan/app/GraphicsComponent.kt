@@ -284,7 +284,7 @@ class GraphicsComponent(val client: VulkanClient) {
                 image          = swapChain.images[i],
                 imageView      = swapChain.views[i],
                 frameBuffer    = swapChain.frameBuffers[i],
-                adhocCB        = commandPool.alloc(),
+                cmd        = commandPool.alloc(),
                 fence          = device.createFence(signalled = true),
                 imageAvailable = device.createSemaphore(),
                 renderFinished = device.createSemaphore()

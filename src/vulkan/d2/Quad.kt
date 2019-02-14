@@ -82,7 +82,7 @@ class Quad {
         uploadUBO(res)
     }
     fun insideRenderPass(frame: FrameInfo, res: PerFrameResource) {
-        res.adhocCB.run {
+        res.cmd.run {
             bindPipeline(pipeline)
             bindDescriptorSets(
                 pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -111,15 +111,15 @@ class Quad {
     private fun uploadUBO(res: PerFrameResource) {
         if(uboUploaded) return
 
-        ubo.transfer(res.adhocCB, bufferAllocs.stagingUniform, bufferAllocs.uniformBuffer)
+        ubo.transfer(res.cmd, bufferAllocs.stagingUniform, bufferAllocs.uniformBuffer)
 
         uboUploaded = true
     }
     private fun uploadVertices(res: PerFrameResource) {
         if(verticesUploaded) return
 
-        vertices.transfer(res.adhocCB, bufferAllocs.stagingVertices, bufferAllocs.vertexBuffer)
-        indices.transfer(res.adhocCB, bufferAllocs.stagingIndices, bufferAllocs.indexBuffer)
+        vertices.transfer(res.cmd, bufferAllocs.stagingVertices, bufferAllocs.vertexBuffer)
+        indices.transfer(res.cmd, bufferAllocs.stagingIndices, bufferAllocs.indexBuffer)
 
         verticesUploaded = true
     }

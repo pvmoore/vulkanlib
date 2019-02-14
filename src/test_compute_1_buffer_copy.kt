@@ -216,7 +216,7 @@ private class ComputeSimpleBufferCopy : VulkanClient(
             arrayOf(computeCompleteSemaphore!!)       // signal semaphores
         )
 
-        val b = res.adhocCB
+        val b = res.cmd
         b.beginOneTimeSubmit()
 
         // Note: Do buffer updates/transfers outside the render pass

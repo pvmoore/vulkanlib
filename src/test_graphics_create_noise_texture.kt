@@ -140,7 +140,7 @@ private class TestCreateNoiseTexture : VulkanClient(
 
         update()
 
-        res.adhocCB.let { b->
+        res.cmd.let { b->
             b.beginOneTimeSubmit()
 
             quad.beforeRenderPass(frame, res)

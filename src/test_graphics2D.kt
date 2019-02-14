@@ -116,7 +116,7 @@ private class GraphicsApplication : VulkanClient(
 
         update()
 
-        val b = res.adhocCB
+        val b = res.cmd
         b.beginOneTimeSubmit()
 
         beforeRenderPass(frame, res)

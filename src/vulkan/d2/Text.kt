@@ -135,7 +135,7 @@ class Text {
     fun insideRenderPass(frame: FrameInfo, res: PerFrameResource) {
         if(vertices.numCharacters==0) return
 
-        res.adhocCB.run {
+        res.cmd.run {
             bindPipeline(pipeline)
             bindDescriptorSet(
                 pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -211,14 +211,14 @@ class Text {
         generateVertices()
 
         vertices.transfer(
-            res.adhocCB,
+            res.cmd,
             buffers.stagingVertices.rangeOf(0, vertices.size()),
             buffers.vertexBuffer.rangeOf(0,vertices.size()))
 
         verticesChanged = false
     }
     private fun updateUBO(res : PerFrameResource) {
-        ubo.transfer(res.adhocCB, buffers.stagingUniform, buffers.uniformBuffer)
+        ubo.transfer(res.cmd, buffers.stagingUniform, buffers.uniformBuffer)
         uboChanged = false
     }
     private fun countCharacters():Int {

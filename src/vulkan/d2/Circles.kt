@@ -136,7 +136,7 @@ class Circles {
     fun insideRenderPass(frame: FrameInfo, res: PerFrameResource) {
         if(points.numPoints()==0) return
 
-        res.adhocCB.run {
+        res.cmd.run {
             bindPipeline(pipeline)
             bindDescriptorSets(
                 pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
@@ -159,12 +159,12 @@ class Circles {
     }
     //==========================================================================================
     private fun updatePoints(frame: FrameInfo, res: PerFrameResource) {
-        points.transfer(res.adhocCB, stagingVertices!!.rangeOf(0, points.size()),
-                                     verticesBuffer!!.rangeOf(0, points.size()))
+        points.transfer(res.cmd, stagingVertices!!.rangeOf(0, points.size()),
+                        verticesBuffer!!.rangeOf(0, points.size()))
         pointsStale = false
     }
     private fun updateUniform(frame: FrameInfo, res: PerFrameResource) {
-        ubo.transfer(res.adhocCB, stagingUniform, uniformBuffer!!)
+        ubo.transfer(res.cmd, stagingUniform, uniformBuffer!!)
         uboStale = false
     }
     //=========================================================================================
