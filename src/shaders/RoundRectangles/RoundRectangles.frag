@@ -37,7 +37,7 @@ void main() {
         // we are in a corner
         if(dfc > inRadius) discard;
 
-        float v = inRadius-dfc;
+        float v = inRadius/dfc;
         alpha = clamp(v, 0, alpha);
     }
 

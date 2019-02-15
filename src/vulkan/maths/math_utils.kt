@@ -22,7 +22,7 @@ var Vector4f.height
     set(value) { w = value}
 
 
-fun Vector4f.dimension() = Vector2f(x,y)
+fun Vector4f.dimension() = Vector2f(z,w)
 
 
 fun Float.string()  : String = String.format("%.4f", this)

@@ -113,7 +113,7 @@ private class GraphicsApplication : VulkanClient(
     }
     override fun render(frame: FrameInfo, res: PerFrameResource) {
 
-        update()
+        update(frame)
 
         val b = res.cmd
         b.beginOneTimeSubmit()
@@ -146,26 +146,45 @@ private class GraphicsApplication : VulkanClient(
         )
     }
     //=====================================================================================================
-    private fun update() {
+    private fun update(frame: FrameInfo) {
+
+        var cameraMoved = false
 
         vk.graphics.drainWindowEvents().forEach {
             when(it) {
-                is KeyEvent       -> {
+                is KeyEvent -> {
                     if(it.key == GLFW.GLFW_KEY_ESCAPE) vk.graphics.postCloseMessage()
                 }
                 is MouseDragStart -> {
                     println("Start drag: ${it.pos.string()} button:${it.button}")
                     System.out.flush()
                 }
-                is MouseDrag      -> {
+                is MouseDrag -> {
                     println("drag: ${it.delta.string()} button:${it.button}")
                     System.out.flush()
                 }
-                is MouseDragEnd   -> {
+                is MouseDragEnd -> {
                     println("End drag: ${it.delta.string()} button:${it.button}")
                     System.out.flush()
                 }
+                is MouseWheelEvent -> {
+                    val zoom = it.yDelta
+
+                    when {
+                        zoom > 0f -> camera.zoomIn(  zoom * frame.perSecond.toFloat() * 200, 0.1f)
+                        zoom < 0f -> camera.zoomOut(-zoom * frame.perSecond.toFloat() * 200, 1.5f)
+                    }
+                    cameraMoved = true
+                }
             }
+        }
+        if(cameraMoved) {
+            quads.forEach { q->q.camera(camera) }
+            rectangles.camera(camera)
+            roundRectangles.camera(camera)
+            circles.camera(camera)
+            lines.camera(camera)
+            text.camera(camera)
         }
     }
     private fun beforeRenderPass(frame: FrameInfo, res: PerFrameResource) {

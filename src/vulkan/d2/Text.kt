@@ -36,6 +36,8 @@ class Text {
     private var uboChanged      = true
     private var verticesChanged = true
 
+    fun getFont() = font
+
     fun init(context: RenderContext, font: Font, maxCharacters:Int, dropShadow:Boolean)
         : Text
     {
