@@ -349,12 +349,12 @@ class GraphicsComponent(val client: VulkanClient) {
                 // Handle dragging
                 if(action == GLFW_RELEASE) {
                     if(dragStart != null) {
-                        windowEvents.add(MouseDragEnd(Vector2f(inputState.mouseX, inputState.mouseY).sub(dragStart)))
+                        windowEvents.add(MouseDragEnd(Vector2f(inputState.mouseX, inputState.mouseY).sub(dragStart), button))
                     }
                     dragStart = null
                 } else {
                     dragStart = Vector2f(inputState.mouseX, inputState.mouseY)
-                    windowEvents.add(MouseDragStart(Vector2f(inputState.mouseX, inputState.mouseY)))
+                    windowEvents.add(MouseDragStart(Vector2f(inputState.mouseX, inputState.mouseY), button))
                 }
             }
         }
@@ -365,8 +365,8 @@ class GraphicsComponent(val client: VulkanClient) {
                     inputState.update(this)
                 }
                 // This is now a confirmed drag
-                if(inputState.isMouseButtonDown(0)) {
-                    windowEvents.add(MouseDrag(Vector2f(inputState.mouseX, inputState.mouseY).sub(dragStart)))
+                if(inputState.isAnyMouseButtonDown()) {
+                    windowEvents.add(MouseDrag(Vector2f(inputState.mouseX, inputState.mouseY).sub(dragStart), inputState.whichMouseButtonIsDown()))
                 }
             }
         }

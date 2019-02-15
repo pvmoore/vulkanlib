@@ -154,15 +154,15 @@ private class GraphicsApplication : VulkanClient(
                     if(it.key == GLFW.GLFW_KEY_ESCAPE) vk.graphics.postCloseMessage()
                 }
                 is MouseDragStart -> {
-                    println("Start drag: ${it.pos.string()}")
+                    println("Start drag: ${it.pos.string()} button:${it.button}")
                     System.out.flush()
                 }
                 is MouseDrag      -> {
-                    println("drag: ${it.delta.string()}")
+                    println("drag: ${it.delta.string()} button:${it.button}")
                     System.out.flush()
                 }
                 is MouseDragEnd   -> {
-                    println("End drag: ${it.delta.string()}")
+                    println("End drag: ${it.delta.string()} button:${it.button}")
                     System.out.flush()
                 }
             }
@@ -260,20 +260,20 @@ private class GraphicsApplication : VulkanClient(
 
             .addRectangle(Vector2f(650f,350f), Vector2f(50f,50f),
                           WHITE, blue,
-                          blue, blue,
-                          Vector4f(15f,0f,0f,0f))
+                          blue.blend(BLUE), blue,
+                          Vector4f(20f,0f,0f,0f))
             .addRectangle(Vector2f(710f,350f), Vector2f(50f,50f),
                           blue, WHITE,
-                          blue, blue,
-                          Vector4f(0f, 15f,0f,0f))
+                          blue, blue.blend(BLUE),
+                          Vector4f(0f, 20f,0f,0f))
             .addRectangle(Vector2f(650f,410f), Vector2f(50f,50f),
-                          blue, blue,
+                          blue, blue.blend(BLUE),
                           blue, WHITE,
-                          Vector4f(0f,0f,0f,15f))
+                          Vector4f(0f,0f,0f,20f))
             .addRectangle(Vector2f(710f,410f), Vector2f(50f,50f),
-                          blue, blue,
+                          blue.blend(BLUE), blue,
                           WHITE, blue,
-                          Vector4f(0f, 0f,15f,0f))
+                          Vector4f(0f, 0f,20f,0f))
 
             .addRectangle(Vector2f(650f,200f), Vector2f(150f,100f),
                 orange,orange*3f,

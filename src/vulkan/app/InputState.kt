@@ -1,15 +1,14 @@
-package vulkan.common
+package vulkan.app
 
 import org.lwjgl.glfw.GLFW.*
-import vulkan.app.*
 
 class InputState {
     private val keysDown         = HashSet<Int>()
     private val mouseButtonsDown = HashSet<Int>()
 
-    var mouseX:Float        = 0f
-    var mouseY:Float        = 0f
-    var mouseWheelY:Float   = 0f
+    var mouseX:Float      = 0f
+    var mouseY:Float      = 0f
+    var mouseWheelY:Float = 0f
 
     fun isKeyDown(code:Int) = keysDown.contains(code)
     fun isShiftPressed()    = isKeyDown(GLFW_KEY_LEFT_SHIFT) or isKeyDown(GLFW_KEY_RIGHT_SHIFT)
@@ -17,24 +16,12 @@ class InputState {
     fun isAltPressed()      = isKeyDown(GLFW_KEY_LEFT_ALT) or isKeyDown(GLFW_KEY_RIGHT_ALT)
 
     fun isMouseButtonDown(button:Int) = mouseButtonsDown.contains(button)
-
-    fun reset() {
-        keysDown.clear()
-        mouseButtonsDown.clear()
-        mouseX = 0f
-        mouseY = 0f
-        mouseWheelY = 0f
-    }
-    fun resetMouseWheel() {
-        mouseWheelY = 0f
-    }
+    fun isAnyMouseButtonDown()   = mouseButtonsDown.isNotEmpty()
+    fun whichMouseButtonIsDown() = if(mouseButtonsDown.isNotEmpty()) mouseButtonsDown.first() else -1
 
     /**
-     * Update properties given the list of events.
+     * Update properties with this event.
      */
-    fun update(events:List<WindowEvent>) {
-        events.forEach { update(it) }
-    }
     fun update(e:WindowEvent) {
         when(e) {
             is KeyEvent         -> {
