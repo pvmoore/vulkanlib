@@ -35,6 +35,7 @@ class Text {
     private var colour: RGBA    = WHITE
     private var uboChanged      = true
     private var verticesChanged = true
+    private val labels          = HashMap<String,Int>()
 
     fun getFont() = font
 
@@ -80,25 +81,29 @@ class Text {
         this.size = size
         return this
     }
-    fun appendText(text:String, x:Int = 0, y:Int = 0) : Text {
+    fun indexOfLabel(label:String) = labels[label]
+    fun appendText(text:String, pos:Vector2f, label:String? = null) : Text {
+
+        label?.let { labels[it] = textChunks.size }
+
         textChunks.add(TextChunk(
             text,
             colour,
             size,
-            x,
-            y)
+            pos)
         )
         verticesChanged = true
         return this
     }
-    fun updateText(chunk:Int, text:String, x:Int = -1, y:Int = -1) : Text {
-        /** Ignore the update if nothing has changed */
+    fun updateText(chunk:Int, text:String, pos:Vector2f? = null) : Text {
         val prev = textChunks[chunk]
-        if((x==-1 || x==prev.x) && (y==-1 || y==prev.y) && prev.text == text) return this
+        if((pos==null || pos==prev.pos) && prev.text == text) return this
 
         prev.text = text
-        if(x!=-1) prev.x = x
-        if(y!=-1) prev.y = y
+
+        pos?.let {
+            prev.pos.set(pos)
+        }
 
         verticesChanged = true
         return this
@@ -107,6 +112,14 @@ class Text {
         val prev = textChunks[chunk]
         if(prev.colour != colour) {
             prev.colour = colour
+            verticesChanged = true
+        }
+        return this
+    }
+    fun updatePos(chunk:Int, pos:Vector2f) : Text {
+        val prev = textChunks[chunk]
+        if(prev.pos!=pos) {
+            prev.pos.set(pos)
             verticesChanged = true
         }
         return this
@@ -121,6 +134,7 @@ class Text {
     }
     fun clear() : Text {
         textChunks.clear()
+        labels.clear()
         verticesChanged = true
         return this
     }
@@ -231,8 +245,8 @@ class Text {
         vertices.clear()
 
         textChunks.forEach { c ->
-            var X  = c.x.toFloat()
-            val Y  = c.y.toFloat()
+            var X  = c.pos.x
+            val Y  = c.pos.y
 
             fun generateVertex(i:Int, ch:Int) {
                 val g     = font.getChar(ch)
@@ -314,7 +328,6 @@ class Text {
         var text:String,
         var colour:RGBA,
         var size:Float,
-        var x:Int,
-        var y:Int
+        var pos:Vector2f
     )
 }

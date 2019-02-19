@@ -341,7 +341,7 @@ private class GraphicsApplication : VulkanClient(
 
         (0..18).forEach { i->
             text.setColour(RGBA(i/19.0f,0.5f+i/40.0f,1f,1f)*1.1f)
-            text.appendText("Hello there I am some text...", 10, 110+i*20)
+            text.appendText("Hello there I am some text...", Vector2f(10f, 110+i*20f))
         }
 
         circles.init(context, 10)

@@ -1,5 +1,6 @@
 package vulkan.d2
 
+import org.joml.Vector2f
 import vulkan.common.FrameInfo
 import vulkan.common.PerFrameResource
 import vulkan.common.RenderContext
@@ -7,24 +8,22 @@ import vulkan.misc.RGBA
 
 class FPS(private val suffix:String = " fps",
           private val colour: RGBA = RGBA(1f,1f,0.7f,1f),
-          private var x:Int = -1,
-          private var y:Int = -1)
+          private var pos:Vector2f? = null)
 {
     private lateinit var context:RenderContext
 
     private val text = Text()
 
     fun init(context:RenderContext) : FPS {
-        if(x==-1 || y==-1) {
-            x = context.vk.graphics.windowSize.x-135
-            y = 5
+        if(pos==null) {
+            pos = Vector2f(context.vk.graphics.windowSize.x-135f, 5f)
         }
 
         this.context = context
         this.text.init(context, context.vk.graphics.fonts.get("segoe-ui"), 100, true)
                  .setColour(colour)
                  .setSize(24f)
-                 .appendText(".....", x,y)
+                 .appendText(".....", pos!!)
 
         return this
     }

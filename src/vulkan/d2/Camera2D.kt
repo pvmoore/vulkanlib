@@ -23,8 +23,7 @@ import org.joml.Matrix4f
 import org.joml.Vector2f
 import org.joml.Vector2i
 import org.joml.Vector4f
-import vulkan.maths.Degrees
-import vulkan.maths.string
+import vulkan.maths.*
 
 class Camera2D constructor(val windowSize:Vector2i = Vector2i()) {
     private var _zoomFactor         = 1f
@@ -32,9 +31,13 @@ class Camera2D constructor(val windowSize:Vector2i = Vector2i()) {
     private var recalculateView     = true
     private var recalculateProj     = true
     private var recalculateViewProj = true
-    private val view     = Matrix4f()
-    private val proj     = Matrix4f()
-    private val viewProj = Matrix4f()
+    private var recalculateInvView  = true
+    private var recalculateInvVP    = true
+    private val view        = Matrix4f()
+    private val proj        = Matrix4f()
+    private val viewProj    = Matrix4f()
+    private val invView     = Matrix4f()
+    private val invViewProj = Matrix4f()
 
     val position = Vector2f(windowSize.x/2f, windowSize.y/2f)
     val up       = Vector2f(0f, 1f)
@@ -121,10 +124,11 @@ class Camera2D constructor(val windowSize:Vector2i = Vector2i()) {
                 up.x,       up.y,       0f)  // head is up
             recalculateView     = false
             recalculateViewProj = true
+            recalculateInvView  = true
         }
         dest?.set(view)
     }
-    fun VP(dest:Matrix4f) {
+    fun VP(dest:Matrix4f? = null) {
         if(recalculateView || recalculateProj || recalculateViewProj) {
             V()
             P()
@@ -132,8 +136,43 @@ class Camera2D constructor(val windowSize:Vector2i = Vector2i()) {
             viewProj.mul(view)
             //viewProj = proj * view;
             recalculateViewProj = false
+            recalculateInvVP    = true
         }
-        dest.set(viewProj)
+        dest?.set(viewProj)
+    }
+    fun invV(dest:Matrix4f) : Matrix4f {
+        V()
+        if(recalculateInvView) {
+            view.invert(invView)
+            recalculateInvView = false
+        }
+        dest.set(invView)
+        return dest
+    }
+    fun invVP(dest:Matrix4f) : Matrix4f {
+        VP()
+        if(recalculateInvVP) {
+            viewProj.invert(invViewProj)
+            recalculateInvVP = false
+        }
+        dest.set(invViewProj)
+        return dest
+    }
+    /**
+     * @param pos screen pos (0,0) is top left
+     * @return world pos
+     */
+    fun screenToWorld(pos:Vector2f) : Vector2f {
+
+        val screenSize = windowSize.toVector2f()
+
+        val ndc = (((pos + 0.5f) * 2f) / screenSize) - 1f
+
+        val inv = invVP(Matrix4f())
+
+        val worldPos = Vector4f(ndc, 0f, 1f) * inv
+
+        return worldPos.xy()
     }
     override fun toString(): String {
         return "[Camera pos:${position.string()} up:${up.string()}"

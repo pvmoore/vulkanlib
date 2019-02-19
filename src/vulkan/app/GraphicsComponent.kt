@@ -341,7 +341,7 @@ class GraphicsComponent(val client: VulkanClient) {
         }
         val mouseButtonCallback = object :GLFWMouseButtonCallback() {
             override fun invoke(window : Long, button : Int, action : Int, mods : Int) {
-                MouseButtonEvent(button, KeyAction(action), KeyMods(mods)).run {
+                MouseButtonEvent(button, Vector2f(inputState.mouseX, inputState.mouseY), KeyAction(action), KeyMods(mods)).run {
                     windowEvents.add(this)
                     inputState.update(this)
                 }

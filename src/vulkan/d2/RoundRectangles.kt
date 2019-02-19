@@ -11,7 +11,8 @@ import vulkan.api.draw
 import vulkan.api.pipeline.GraphicsPipeline
 import vulkan.api.pipeline.bindPipeline
 import vulkan.common.*
-import vulkan.maths.string
+import vulkan.maths.minus
+import vulkan.maths.plus
 import vulkan.misc.RGBA
 import vulkan.misc.WHITE
 import vulkan.misc.orThrow
@@ -23,6 +24,7 @@ class RoundRectangles {
 
     private var maxRects = 0
 
+    private val labels          = HashMap<String, Int>()
     private val vertices        = Vertices()
     private val ubo             = UBO()
     private val pipeline        = GraphicsPipeline()
@@ -53,13 +55,17 @@ class RoundRectangles {
         this.colour = c
         return this
     }
-    fun addRectangle(pos:Vector2f, size:Vector2f, cornerRadius:Vector4f) : RoundRectangles {
-        return addRectangle(pos, size, colour, colour, colour, colour, cornerRadius)
+    fun indexOfLabel(label:String) = labels[label]
+    fun addRectangle(pos:Vector2f, size:Vector2f, cornerRadius:Vector4f, label:String? = null) : RoundRectangles {
+        return addRectangle(pos, size, colour, colour, colour, colour, cornerRadius, label)
     }
     fun addRectangle(pos:Vector2f, size:Vector2f,
                      c1:RGBA, c2:RGBA, c3:RGBA, c4:RGBA,
-                     cornerRadius:Vector4f) : RoundRectangles
+                     cornerRadius:Vector4f,
+                     label:String? = null) : RoundRectangles
     {
+        label?.let { labels[it] = vertices.numRectangles }
+
         vertices.addRectangle()
         return updateRectangle(vertices.numRectangles-1, pos, size, c1,c2,c3,c4, cornerRadius)
     }
@@ -71,8 +77,14 @@ class RoundRectangles {
         verticesChanged = true
         return this
     }
+    fun updateRectangle(index:Int, pos:Vector2f) : RoundRectangles {
+        vertices.update(index, pos)
+        verticesChanged = true
+        return this
+    }
     fun clear() : RoundRectangles {
         vertices.removeAll()
+        labels.clear()
         verticesChanged = true
         return this
     }
@@ -147,7 +159,6 @@ class RoundRectangles {
             buffers.vertexBuffer.rangeOf(0,vertices.size()))
 
         verticesChanged = false
-        log.info("Updated ${vertices.numRectangles} rectangles")
     }
     private fun updateUBO(res : PerFrameResource) {
         ubo.transfer(res.cmd, buffers.stagingUniform, buffers.uniformBuffer)
@@ -176,7 +187,7 @@ class RoundRectangles {
                              val colour   : Vector4f,
                              var radius   : Float) : AbsTransferable()
 
-        private val array = ArrayList<Vertex>()
+        private val array  = ArrayList<Vertex>()
 
         override fun getArray() = array.toTypedArray()
         override fun elementInstance() =
@@ -202,8 +213,6 @@ class RoundRectangles {
         {
             assert(index<numRectangles)
 
-            println("cornerRadius = ${cornerRadius.string()}")
-
             val i = index*6
 
             //  1--2    1,2,4  2,3,4
@@ -227,6 +236,30 @@ class RoundRectangles {
             array[i+4].let { it.pos.set(pos).add(size); it.colour.set(c3); it.radius = cornerRadius.z }
             //4
             array[i+5].let { it.pos.set(pos).add(0f, size.y); it.colour.set(c4); it.radius = cornerRadius.w }
+        }
+        fun update(index:Int, pos:Vector2f) {
+            assert(index<numRectangles)
+
+            val i    = index*6
+            val size = array[i+4].pos - array[i+0].pos
+
+            for(j in 0 until 6) {
+                array[i+j].rectPos.set(pos)
+            }
+
+            //1
+            array[i+0].pos.set(pos)
+            //2
+            array[i+1].pos.set(pos.x + size.x, pos.y)
+            //4
+            array[i+2].pos.set(pos.x, pos.y+size.y)
+
+            //2
+            array[i+3].pos.set(pos.x + size.x, pos.y)
+            //3
+            array[i+4].pos.set(pos + size)
+            //4
+            array[i+5].pos.set(pos.x, pos.y+size.y)
         }
     }
     private class UBO(val viewProj: Matrix4f = Matrix4f()) : AbsTransferable()
