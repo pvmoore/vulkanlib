@@ -274,7 +274,7 @@ class GraphicsPipeline {
 
             pipeline = context.device.createGraphicsPipeline(
                 layout,
-                context.renderPass,
+                context.renderPass!!,
                 shaderStages,
                 vertexInputState,
                 inputAssemblyState,

@@ -1,0 +1,86 @@
+#version 450 core
+#extension GL_ARB_separate_shader_objects   : enable
+#extension GL_ARB_shading_language_420pack  : enable
+#extension GL_GOOGLE_include_directive      : require
+
+#define GROUP_SIZE_X 64
+#define GROUP_SIZE_Y 1
+layout(local_size_x = GROUP_SIZE_X,
+local_size_y = GROUP_SIZE_Y) in;
+
+
+layout(set=0, binding=0, std430) readonly buffer I0 {
+    uint dataIn[];
+};
+layout(set=0, binding=1, std430) writeonly buffer O0 {
+    uint dataOut[];
+};
+
+
+ivec2 g_pos  = ivec2(gl_GlobalInvocationID.xy);
+ivec2 l_pos  = ivec2(gl_LocalInvocationID.xy);
+uint g_index = gl_GlobalInvocationID.x; // + gl_GlobalInvocationID.y*SIZE.x;
+uint l_index = gl_LocalInvocationIndex;
+
+
+/// Assumes numBits is between 1 and 32.
+uint getBits(uint bitOffset, int numBits) {
+    uint byteIndex = bitOffset/8;
+    bitOffset &= 7u;
+
+    uint uintIndex = byteIndex/4;
+    uint uintRem   = byteIndex&3u;
+
+    int bitpos     = int(bitOffset + (uintRem*8));
+    int numBits2   = max(0, numBits - (32-bitpos));
+    numBits -= numBits2;
+
+    uint result = bitfieldExtract(dataIn[uintIndex], bitpos, numBits);
+    uint add = numBits2 == 0 ? 0 : (bitfieldExtract(dataIn[uintIndex+1], 0, numBits2) << numBits);
+    return result + add;
+}
+uint getBits2(uint bitOffset, int numBits) {
+    uint byteIndex = bitOffset/8;
+    bitOffset &= 7u;
+
+    uint uintIndex = byteIndex/4;
+    uint uintRem   = byteIndex&3u;
+
+    int bitpos     = int(bitOffset + (uintRem*8));
+    int numBits2   = max(0, numBits - (32-bitpos));
+    numBits -= numBits2;
+
+    return bitfieldExtract(dataIn[uintIndex], bitpos, numBits) +
+          (bitfieldExtract(dataIn[uintIndex+1], 0, numBits2) << numBits);
+}
+
+void main() {
+
+    #define GETBITS getBits2(8*32,32)
+
+    uint a = GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS
+           + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS
+           + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS
+           + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS
+           + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS
+           + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS
+           + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS
+           + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS
+           + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS
+           + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS
+           + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS
+           + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS
+           + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS
+           + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS
+           + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS
+           + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS
+           + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS
+           + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS
+           + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS
+           + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS
+           + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS + GETBITS
+    ;
+
+    dataOut[g_index] = a;
+}
+
