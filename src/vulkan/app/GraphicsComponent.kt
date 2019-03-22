@@ -267,7 +267,7 @@ class GraphicsComponent(val client: VulkanClient) {
     }
     private fun createSwapChain() {
         val w = windowSize
-        swapChain = SwapChain(vk, w.x, w.y, surface, surfaceFormat, renderPass)
+        swapChain = SwapChain(vk, w.x, w.y, surface, client.depthStencilFormat, surfaceFormat, renderPass)
     }
     private fun createCommandPool() {
         commandPool = device.createCommandPool(

@@ -4,7 +4,6 @@ import org.joml.Vector2f
 import org.joml.Vector4f
 import org.lwjgl.glfw.GLFW
 import org.lwjgl.vulkan.VK10.VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
-import org.lwjgl.vulkan.VkClearValue
 import org.lwjgl.vulkan.VkDevice
 import org.lwjgl.vulkan.VkPhysicalDeviceFeatures
 import vulkan.api.*
@@ -16,13 +15,13 @@ import vulkan.misc.*
 import vulkan.texture.Textures
 
 /**
- * Vulkan graphics example.
+ * Vulkan 2D graphics example.
  */
 
 fun main(args:Array<String>) {
-    log.info("Testing Vulkan Graphics...")
+    log.info("Testing Vulkan 2D Graphics...")
 
-    val client = GraphicsApplication()
+    val client = Graphics2DApplication()
     var app: VulkanApplication? = null
 
     fun initialise() {
@@ -48,7 +47,7 @@ fun main(args:Array<String>) {
 
     log.info("Finished")
 }
-private class GraphicsApplication : VulkanClient(
+private class Graphics2DApplication :VulkanClient(
     windowed                = true,
     width                   = 1400,
     height                  = 800,
@@ -70,13 +69,8 @@ private class GraphicsApplication : VulkanClient(
     private val text            = Text()
     private val fps             = FPS()
     private val textures        = Textures()
-    private val clearColour     = VkClearValue.calloc(1).color {
-        it.float32(0, 0.2f)
-          .float32(1, 0.0f)
-          .float32(2, 0.0f)
-          .float32(3, 1.0f)
-    }
-    private var sampler:VkSampler? = null
+    private val clearColour     = ClearColour(RGBA(0.2f, 0f, 0f, 1f))
+    private var sampler         = null as VkSampler?
 
     override fun enableFeatures(f : VkPhysicalDeviceFeatures) {
         f.geometryShader(true)
@@ -86,7 +80,7 @@ private class GraphicsApplication : VulkanClient(
         device?.let {
             device.waitForIdle()
 
-            clearColour.free()
+            clearColour.destroy()
 
             sampler?.destroy()
 
@@ -125,7 +119,7 @@ private class GraphicsApplication : VulkanClient(
         b.beginRenderPass(
             vk.graphics.renderPass,
             res.frameBuffer,
-            clearColour,
+            clearColour.value,
             vk.graphics.swapChain.area,
             true
         )

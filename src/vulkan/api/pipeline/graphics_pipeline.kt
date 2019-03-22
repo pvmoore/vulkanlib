@@ -237,6 +237,8 @@ class GraphicsPipeline {
                     .y(0f)
                     .width(win.x.toFloat())
                     .height(win.y.toFloat())
+                    .minDepth(0.0f)
+                    .maxDepth(1.0f)
 
                 viewportState
                     .viewportCount(1)

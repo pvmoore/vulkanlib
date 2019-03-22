@@ -17,6 +17,9 @@ fun readBinaryFile(file: File) : ByteBuffer {
     val buffer = createByteBuffer(array.size)
     return buffer.put(array).flip()
 }
+fun resourceExists(name:String) : Boolean {
+    return Thread.currentThread().contextClassLoader.getResource(name) != null
+}
 fun readBinaryResource(filename: String) : ByteBuffer {
     try{
         BufferedInputStream(Thread.currentThread().contextClassLoader.getResourceAsStream(filename)).use { stream ->

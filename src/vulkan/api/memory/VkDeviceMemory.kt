@@ -7,6 +7,7 @@ import vulkan.api.buffer.VkBuffer
 import vulkan.api.image.VkImage
 import vulkan.common.MEGABYTE
 import vulkan.common.MemoryType
+import vulkan.common.log
 import vulkan.misc.Allocator
 import vulkan.misc.VkBufferUsageFlags
 import vulkan.misc.check
@@ -163,7 +164,10 @@ class VkDeviceMemory(private val physicalDeviceProperties:VkPhysicalDeviceProper
         }
 
         val offset = allocator.alloc(memReqs.size().toInt(), memReqs.alignment().toInt())
-        if(offset==-1) return onError(Reason.OUT_OF_MEMORY)
+        if(offset==-1) {
+            log.error("OUT OF MEMORY requesting ${memReqs.size()} bytes")
+            return onError(Reason.OUT_OF_MEMORY)
+        }
 
         val dimensions = intArrayOf(info.extent().width(), info.extent().height(), info.extent().depth())
 

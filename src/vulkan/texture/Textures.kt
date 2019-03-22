@@ -20,6 +20,7 @@ import vulkan.misc.VkFormat
 import vulkan.misc.megabytes
 import vulkan.misc.orThrow
 import vulkan.misc.translateVkFormat
+import kotlin.collections.set
 
 class Textures(val name:String = "") {
     private val logger: Logger = Logger.getLogger("Textures")
@@ -34,11 +35,12 @@ class Textures(val name:String = "") {
     private val loader = ImageLoader
     private val map    = HashMap<String, Texture>()
 
-    fun init(vk: VulkanApplication, size:Int) {
+    fun init(vk: VulkanApplication, sizeBytes:Int) : Textures {
         this.vk          = vk
         this.commandPool = vk.device.createCommandPool(vk.queues.getFamily(Queues.TRANSFER),
                                                        VK_COMMAND_POOL_CREATE_TRANSIENT_BIT)
-        allocateMemory(size)
+        allocateMemory(sizeBytes)
+        return this
     }
     fun destroy() {
         map.entries.forEach { e->
@@ -61,6 +63,9 @@ class Textures(val name:String = "") {
         val t = generateTexture(name, data)
         map[name] = t
         return t
+    }
+    fun exists(name:String) : Boolean {
+        return map.containsKey(name) || loader.exists(name)
     }
     //=========================================================================================
     private fun generateTexture(name:String, data:RawImageData) : Texture {

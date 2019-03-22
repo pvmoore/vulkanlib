@@ -16,7 +16,8 @@ abstract class VulkanClient(
     val windowTitle:String           = "Vulkan CLient",
     val enableVsync:Boolean          = false,
     val swapChainUsage:Int           = 0,
-    val prefNumSwapChainBuffers:Int  = 2)
+    val prefNumSwapChainBuffers:Int  = 2,
+    val depthStencilFormat:VkFormat  = 0)   // 0 = no depth/stencil will be created
 {
     abstract fun destroy()
     /**

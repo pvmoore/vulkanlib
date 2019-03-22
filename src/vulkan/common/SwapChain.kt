@@ -13,6 +13,9 @@ import org.lwjgl.vulkan.VK10.*
 import vulkan.api.*
 import vulkan.api.image.VkImage
 import vulkan.api.image.VkImageView
+import vulkan.api.memory.VkDeviceMemory
+import vulkan.api.memory.allocImage
+import vulkan.api.memory.allocateMemory
 import vulkan.app.VulkanApplication
 import vulkan.misc.*
 import java.nio.IntBuffer
@@ -21,6 +24,7 @@ class SwapChain(private val vk: VulkanApplication,
                 private val width:Int,
                 private val height:Int,
                 private val surface:Long,
+                private val depthStencilFormat: VkFormat,   // 0 = no depth/stencil
                 surfaceFormat: SurfaceFormat,
                 renderPass:VkRenderPass)
 {
@@ -38,12 +42,16 @@ class SwapChain(private val vk: VulkanApplication,
     val frameBuffers = ArrayList<VkFrameBuffer>()
     var numImages    = 0
 
+    var depthImageMem = null as VkDeviceMemory?
+    var depthImage    = null as VkImage?
+
     init{
         log.info("Initialising SwapChain ...")
 
         handle = createSwapChain()
         getSwapChainImages()
         createImageViews()
+        createDepthBuffer()
         createFrameBuffers(renderPass)
     }
     fun destroy() {
@@ -52,6 +60,10 @@ class SwapChain(private val vk: VulkanApplication,
         if(handle!=VK_NULL_HANDLE) {
             views.forEach { it.destroy() }
             frameBuffers.forEach { it.destroy() }
+
+            depthImage?.destroy()
+            depthImageMem?.free()
+
             vkDestroySwapchainKHR(device, handle, null)
         }
     }
@@ -177,11 +189,50 @@ class SwapChain(private val vk: VulkanApplication,
             log.info("\tCreated ${views.size} image views")
         }
     }
-    fun createFrameBuffers(renderPass:VkRenderPass) {
-        views.forEach {
-            frameBuffers.add(device.createFrameBuffer(it, extent, renderPass))
+    private fun createFrameBuffers(renderPass:VkRenderPass) {
+        views.forEach { v->
+            val views = depthImage?.let { arrayOf(v, depthImage!!.getView()) } ?: arrayOf(v)
+
+            frameBuffers.add(device.createFrameBuffer(views, extent, renderPass))
         }
         log.info("\tCreated ${frameBuffers.size} frame buffers")
+    }
+    private fun createDepthBuffer() {
+
+        if(depthStencilFormat==0) {
+            log.info("\tNo depth buffer image requested")
+            return
+        }
+
+        // hack!!
+        val estimatedSize = extent.x * extent.y * 4 * 2
+
+        depthImageMem =
+            vk.allocateMemory(
+                size              = estimatedSize,
+                desiredMemFlags   = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                undesiredMemFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+                imageUsage        = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT or VK_IMAGE_USAGE_TRANSFER_SRC_BIT
+            ).orThrow()
+
+        log.info("\tAllocated $estimatedSize bytes of depth buffer memory")
+
+
+        depthImage = depthImageMem!!.allocImage { info->
+            info.extent().run {
+                width(extent.x)
+                height(extent.y)
+                depth(1)
+            }
+            info.format(depthStencilFormat)
+            info.usage(VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT or VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
+        }
+
+        depthImage?.createView { info->
+            info.format(depthStencilFormat)
+            info.subresourceRange().aspectMask(VK_IMAGE_ASPECT_DEPTH_BIT or VK_IMAGE_ASPECT_STENCIL_BIT)
+        }
+        log.info("\tCreated depth buffer image and view")
     }
     private fun createSwapChain():VkSwapchainKHR {
         MemoryStack.stackPush().use { stack ->

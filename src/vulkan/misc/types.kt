@@ -1,5 +1,6 @@
 package vulkan.misc
 
+import org.joml.Vector3f
 import org.joml.Vector4f
 import java.nio.ByteBuffer
 
@@ -60,6 +61,7 @@ data class RGBA(val r:Float, val g:Float, val b:Float, val a:Float) {
         return RGBA(r, g, b, a)
     }
 }
+fun RGBA.toVector3f() = Vector3f(r,g,b)
 fun RGBA.toVector4f() = Vector4f(r,g,b,a)
 
 fun ByteBuffer.put(c:RGBA) {

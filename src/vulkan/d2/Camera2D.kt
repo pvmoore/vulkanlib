@@ -25,7 +25,7 @@ import org.joml.Vector2i
 import org.joml.Vector4f
 import vulkan.maths.*
 
-class Camera2D constructor(val windowSize:Vector2i = Vector2i()) {
+class Camera2D(val windowSize:Vector2i = Vector2i()) {
     private var _zoomFactor         = 1f
     private var rotationDegrees     = Degrees(0.0)
     private var recalculateView     = true
@@ -106,11 +106,13 @@ class Camera2D constructor(val windowSize:Vector2i = Vector2i()) {
             assert(windowSize.x>0 && windowSize.y>0) { "windowSize has not been set" }
             val width  = windowSize.x*_zoomFactor
             val height = windowSize.y*_zoomFactor
+
             proj.setOrtho(
                 -width/2f,   width/2f,
                 -height/2f,  height/2f,
                 0f,          100f,
                 true)
+
             recalculateProj     = false
             recalculateViewProj = true
         }
@@ -118,10 +120,12 @@ class Camera2D constructor(val windowSize:Vector2i = Vector2i()) {
     }
     fun V(dest:Matrix4f? = null) {
         if(recalculateView) {
+
             view.setLookAt(
                 position.x, position.y, 1f,  // camera _position in World Space
                 position.x, position.y, 0f,  // look at the _position
                 up.x,       up.y,       0f)  // head is up
+
             recalculateView     = false
             recalculateViewProj = true
             recalculateInvView  = true
@@ -175,6 +179,6 @@ class Camera2D constructor(val windowSize:Vector2i = Vector2i()) {
         return worldPos.xy()
     }
     override fun toString(): String {
-        return "[Camera pos:${position.string()} up:${up.string()}"
+        return "[Camera2D pos:${position.string()} up:${up.string()}"
     }
 }

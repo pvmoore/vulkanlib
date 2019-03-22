@@ -3,12 +3,11 @@ package vulkan.api
 import org.joml.Vector2i
 import org.lwjgl.system.MemoryUtil.memAllocLong
 import org.lwjgl.system.MemoryUtil.memFree
-import org.lwjgl.vulkan.VK10
-import org.lwjgl.vulkan.VK10.vkCreateFramebuffer
-import org.lwjgl.vulkan.VK10.vkDestroyFramebuffer
+import org.lwjgl.vulkan.VK10.*
 import org.lwjgl.vulkan.VkDevice
 import org.lwjgl.vulkan.VkFramebufferCreateInfo
 import vulkan.api.image.VkImageView
+import vulkan.api.image.put
 import vulkan.misc.check
 
 class VkFrameBuffer(private val device: VkDevice, val handle:Long) {
@@ -18,14 +17,19 @@ class VkFrameBuffer(private val device: VkDevice, val handle:Long) {
     }
 }
 
-fun VkDevice.createFrameBuffer(imageView: VkImageView, extent: Vector2i, renderPass:VkRenderPass)
+fun VkDevice.createFrameBuffer(imageViews: Array<VkImageView>,
+                               extent: Vector2i,
+                               renderPass:VkRenderPass)
     :VkFrameBuffer
 {
 
-    val pAttachments = memAllocLong(1).put(imageView.handle).flip()
+    val pAttachments =
+        memAllocLong(imageViews.size)
+            .put(imageViews)
+            .flip()
 
     val info = VkFramebufferCreateInfo.calloc()
-        .sType(VK10.VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO)
+        .sType(VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO)
         .pAttachments(pAttachments)
         .height(extent.x)
         .width(extent.y)

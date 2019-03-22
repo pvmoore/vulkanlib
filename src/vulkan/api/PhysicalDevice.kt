@@ -42,14 +42,13 @@ fun selectBestPhysicalDevice(instance: VkInstance,
             }
         }
         /**
-         *  This check is a bit vague and propably incorrect. At the moment
-         *  I just check the linear tiling features for any set flags. The spec
-         *  says if no flags are set at all then the format is not usable.
+         *  The spec says if no flags are set at all then the format is not usable.
          */
         fun isFormatSupported(device:VkPhysicalDevice, format:Int):Boolean {
             val fp = getFormatProperties(device, format)
-            if(fp.linearTilingFeatures()==0) return false
-            return true
+            return  fp.linearTilingFeatures()!=0 ||
+                    fp.optimalTilingFeatures()!=0 ||
+                    fp.bufferFeatures()!=0
         }
 
         vkEnumeratePhysicalDevices(instance, count, null).check()
@@ -85,6 +84,13 @@ fun selectBestPhysicalDevice(instance: VkInstance,
                     log.info("Format R8_UNORM supported: ${isFormatSupported(it, VK_FORMAT_R8_UNORM)}")
                     log.info("Format R16_SFLOAT supported: ${isFormatSupported(it, VK_FORMAT_R16_SFLOAT)}")
                     log.info("Format R32_SFLOAT supported: ${isFormatSupported(it, VK_FORMAT_R32_SFLOAT)}")
+
+                    // depth/stencil formats
+                    log.info("Format VK_FORMAT_D32_SFLOAT supported: ${isFormatSupported(it, VK_FORMAT_D32_SFLOAT)}")
+                    log.info("Format VK_FORMAT_D16_UNORM_S8_UINT supported: ${isFormatSupported(it, VK_FORMAT_D16_UNORM_S8_UINT)}")
+                    log.info("Format VK_FORMAT_D24_UNORM_S8_UINT supported: ${isFormatSupported(it, VK_FORMAT_D24_UNORM_S8_UINT)}")
+                    log.info("Format VK_FORMAT_D32_SFLOAT_S8_UINT supported: ${isFormatSupported(it, VK_FORMAT_D32_SFLOAT_S8_UINT)}")
+
                 }
 
                 getExtensions(preferredDevice!!).dump()

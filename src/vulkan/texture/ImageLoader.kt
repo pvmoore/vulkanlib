@@ -7,6 +7,7 @@ import org.lwjgl.system.MemoryUtil.memFree
 import org.lwjgl.vulkan.VK10.*
 import vulkan.misc.VkFormat
 import vulkan.misc.readBinaryResource
+import vulkan.misc.resourceExists
 import java.io.File
 import java.nio.ByteBuffer
 
@@ -36,6 +37,9 @@ object ImageLoader {
             }
             else -> loadStandard(name, data, desiredFormat)
         }
+    }
+    fun exists(name:String) : Boolean {
+        return resourceExists(resourceDirectory + name)
     }
     fun free(img: RawImageData) {
         map.remove(img.name)?.let { /*memFree(it.data)*/ }

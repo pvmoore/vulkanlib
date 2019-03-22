@@ -6,6 +6,7 @@ import org.lwjgl.vulkan.VkDescriptorImageInfo
 import org.lwjgl.vulkan.VkDevice
 import vulkan.api.VkSampler
 import vulkan.misc.VkImageLayout
+import java.nio.LongBuffer
 
 class VkImageView(private val device: VkDevice, var handle:Long) {
     fun destroy() {
@@ -19,4 +20,9 @@ class VkImageView(private val device: VkDevice, var handle:Long) {
             .imageLayout(layout)
             .sampler(sampler?.handle ?: VK_NULL_HANDLE)
     }
+}
+
+fun LongBuffer.put(a:Array<VkImageView>): LongBuffer {
+    a.forEach { put(it.handle) }
+    return this
 }

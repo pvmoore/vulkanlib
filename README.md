@@ -2,8 +2,9 @@
 
 A Vulkan library written in Kotlin using LWJGL3
 
-![Chess](screenshots/shot2.png)
+![2D Example](screenshots/shot2.png)
 
+![3D Example](screenshots/shot3d.png)
 ### Dependencies
 
 - Java 11 JRE

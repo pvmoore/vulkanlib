@@ -89,6 +89,30 @@ operator fun Vector3f.timesAssign(v:Vector3f) { x*=v.x; y*=v.y; z*=v.z }
 operator fun Vector3f.divAssign(v:Vector3f)   { x/=v.x; y/=v.y; z/=v.z }
 operator fun Vector3f.remAssign(v:Vector3f)   { x%=v.x; y%=v.y; z%=v.z }
 
+/**
+ *  True if this vector is approx. parallel to other.
+ *  Assumes this and other are unit vectors.
+ */
+fun Vector3f.isParallelTo(other:Vector3f) : Boolean {
+    val d = this.dot(other)
+    return d==1f || d==-1f
+}
+fun Vector3f.right(up:Vector3f) : Vector3f {
+    return this.copy().cross(up)
+}
+fun Vector3f.left(up:Vector3f) : Vector3f {
+    return -this.right(up)
+}
+/// this rotated by d radians toward vector v
+fun Vector3f.rotatedTo(v:Vector3f, radians:Double) : Vector3f {
+    val v1       = this.left(v)
+    val v2       = this.copy().cross(v1).normalize()
+    val v3       = this.copy().normalize() * Math.cos(radians).toFloat() +
+                            v2.normalize() * Math.sin(radians).toFloat()
+
+    return v3*length()
+}
+
 fun Vector3f.xy()  = Vector2f(x,y)
 
 /** Vector4f */

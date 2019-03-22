@@ -121,37 +121,39 @@ fun VkCommandBuffer.setImageLayout(image: VkImage,
     var dstStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT
 
     when {
-        oldLayout==VK_IMAGE_LAYOUT_PREINITIALIZED &&
-        newLayout==VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL ->
+        oldLayout==VK_IMAGE_LAYOUT_PREINITIALIZED && newLayout==VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL ->
         {
             barrier.srcAccessMask(VK_ACCESS_HOST_WRITE_BIT)
             barrier.dstAccessMask(VK_ACCESS_TRANSFER_READ_BIT)
             srcStageMask = VK_PIPELINE_STAGE_HOST_BIT
             dstStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT
         }
-        oldLayout==VK_IMAGE_LAYOUT_PREINITIALIZED &&
-        newLayout==VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL ->
+        oldLayout==VK_IMAGE_LAYOUT_PREINITIALIZED && newLayout==VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL ->
         {
             barrier.srcAccessMask(VK_ACCESS_HOST_WRITE_BIT)
             barrier.dstAccessMask(VK_ACCESS_TRANSFER_WRITE_BIT)
             srcStageMask = VK_PIPELINE_STAGE_HOST_BIT
             dstStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT
         }
-        oldLayout==VK_IMAGE_LAYOUT_UNDEFINED &&
-        newLayout==VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL ->
+        oldLayout==VK_IMAGE_LAYOUT_UNDEFINED && newLayout==VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL ->
         {
             barrier.srcAccessMask(0)
             barrier.dstAccessMask(VK_ACCESS_TRANSFER_WRITE_BIT)
             srcStageMask = VK_PIPELINE_STAGE_HOST_BIT
             dstStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT
         }
-        oldLayout==VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
-        newLayout==VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ->
+        oldLayout==VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout==VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ->
         {
             barrier.srcAccessMask(VK_ACCESS_TRANSFER_WRITE_BIT)
             barrier.dstAccessMask(VK_ACCESS_SHADER_READ_BIT)
             srcStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT
             dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT
+        }
+    }
+
+    when(newLayout) {
+        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL -> {
+            barrier.dstAccessMask(barrier.dstAccessMask() or VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT)
         }
     }
 
