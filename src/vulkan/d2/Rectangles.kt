@@ -24,11 +24,9 @@ class Rectangles {
     private val ubo             = UBO()
     private val pipeline        = GraphicsPipeline()
     private val descriptors     = Descriptors()
-
-    private var colour:RGBA     = WHITE
+    private var colour          = WHITE
     private var maxRects        = 0
     private var verticesChanged = true
-    private var uboChanged      = true
 
     fun init(context:RenderContext, maxRects:Int) : Rectangles{
         assert(maxRects>0)
@@ -39,13 +37,14 @@ class Rectangles {
         return this
     }
     fun destroy() {
+        ubo.destroy()
         buffers.free()
         descriptors.destroy()
         pipeline.destroy()
     }
     fun camera(camera : Camera2D) : Rectangles {
         camera.VP(ubo.viewProj)
-        uboChanged = true
+        ubo.setStale()
         return this
     }
     fun setColour(c: RGBA) : Rectangles {
@@ -90,9 +89,7 @@ class Rectangles {
         if(verticesChanged) {
             updateVertices(res)
         }
-        if(uboChanged) {
-            updateUBO(res)
-        }
+        ubo.transfer(res.cmd)
     }
     fun insideRenderPass(frame: FrameInfo, res: PerFrameResource) {
         if(vertices.numRectangles==0) return
@@ -123,6 +120,8 @@ class Rectangles {
 
         buffers = BufferAllocs(context.buffers)
 
+        ubo.init(context)
+
         /**
          * Bindings:
          *    0     uniform buffer
@@ -137,7 +136,7 @@ class Rectangles {
         descriptors
             .layout(0)
                 .createSet()
-                .add(buffers.uniformBuffer)
+                .add(ubo.deviceBuffer)
             .write()
 
         pipeline.init(context)
@@ -156,24 +155,15 @@ class Rectangles {
 
         log.info("Updated ${vertices.numRectangles} rectangles")
     }
-    private fun updateUBO(res : PerFrameResource) {
-        ubo.transfer(res.cmd, buffers.stagingUniform, buffers.uniformBuffer)
-        uboChanged = false
-    }
 
     //=======================================================================================================
     private inner class BufferAllocs(b: VulkanBuffers) {
         var stagingVertices: BufferAlloc = b.get(VulkanBuffers.STAGING_UPLOAD).allocate(vertices.vertexSize * 6 * maxRects).orThrow()
-        val stagingUniform: BufferAlloc = b.get(VulkanBuffers.STAGING_UPLOAD).allocate(ubo.size()).orThrow()
-
         val vertexBuffer: BufferAlloc  = b.get(VulkanBuffers.VERTEX).allocate(vertices.vertexSize * 6 * maxRects).orThrow()
-        val uniformBuffer: BufferAlloc = b.get(VulkanBuffers.UNIFORM).allocate(ubo.size()).orThrow()
 
         fun free() {
             stagingVertices.free()
-            stagingUniform.free()
             vertexBuffer.free()
-            uniformBuffer.free()
         }
     }
     private class Vertices : AbsTransferableArray() {
@@ -213,5 +203,5 @@ class Rectangles {
             array[i+5].pos.set(p4); array[i+5].colour.set(c4)
         }
     }
-    private class UBO(val viewProj: Matrix4f = Matrix4f()) : AbsTransferable()
+    private class UBO(val viewProj: Matrix4f = Matrix4f()) : AbsUBO()
 }

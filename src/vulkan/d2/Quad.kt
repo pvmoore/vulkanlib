@@ -24,7 +24,6 @@ class Quad {
 
     private var isInitialised    = false
     private var verticesUploaded = false
-    private var uboUploaded      = false
     private val vertices         = Vertices()
     private val indices          = Indices()
     private val ubo              = UBO()
@@ -39,6 +38,8 @@ class Quad {
         this.context      = context
         this.bufferAllocs = BufferAllocs(context.buffers)
 
+        ubo.init(context)
+
         createDescriptors(imageView, sampler)
         createPipeline(context)
 
@@ -47,6 +48,7 @@ class Quad {
     }
     fun destroy() {
         if(isInitialised) {
+            ubo.destroy()
             bufferAllocs.free()
             descriptors.destroy()
             pipeline.destroy()
@@ -55,14 +57,12 @@ class Quad {
     fun camera(camera: Camera2D) : Quad {
         camera.V(ubo.view)
         camera.P(ubo.proj)
-
-        uboUploaded = false
+        ubo.setStale()
         return this
     }
     fun model(model:Matrix4f) : Quad {
         ubo.model.set(model)
-
-        uboUploaded = false
+        ubo.setStale()
         return this
     }
     fun setColour(c: RGBA) : Quad {
@@ -109,11 +109,7 @@ class Quad {
     // PRIVATE
     //==========================================================================================
     private fun uploadUBO(res: PerFrameResource) {
-        if(uboUploaded) return
-
-        ubo.transfer(res.cmd, bufferAllocs.stagingUniform, bufferAllocs.uniformBuffer)
-
-        uboUploaded = true
+        ubo.transfer(res.cmd)
     }
     private fun uploadVertices(res: PerFrameResource) {
         if(verticesUploaded) return
@@ -138,7 +134,7 @@ class Quad {
             .build()
 
         descriptors.layout(0).createSet()
-            .add(bufferAllocs.uniformBuffer)
+            .add(ubo.deviceBuffer)
             .add(imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, sampler)
             .write()
     }
@@ -156,7 +152,7 @@ class Quad {
 
     private class UBO(val model:Matrix4f = Matrix4f(),
                       val view:Matrix4f  = Matrix4f(),
-                      val proj:Matrix4f  = Matrix4f()) : AbsTransferable()
+                      val proj:Matrix4f  = Matrix4f()) : AbsUBO()
 
     private class Vertices : AbsTransferableArray()
     {
@@ -192,19 +188,15 @@ class Quad {
 
         val stagingVertices: BufferAlloc = b.get(VulkanBuffers.STAGING_UPLOAD).allocate(vertices.size()).orThrow(),
         val stagingIndices: BufferAlloc = b.get(VulkanBuffers.STAGING_UPLOAD).allocate(indices.size()).orThrow(),
-        val stagingUniform: BufferAlloc = b.get(VulkanBuffers.STAGING_UPLOAD).allocate(ubo.size()).orThrow(),
 
         val vertexBuffer: BufferAlloc  = b.get(VulkanBuffers.VERTEX).allocate(vertices.size()).orThrow(),
-        val indexBuffer: BufferAlloc   = b.get(VulkanBuffers.INDEX).allocate(indices.size()).orThrow(),
-        val uniformBuffer: BufferAlloc = b.get(VulkanBuffers.UNIFORM).allocate(ubo.size()).orThrow())
+        val indexBuffer: BufferAlloc   = b.get(VulkanBuffers.INDEX).allocate(indices.size()).orThrow())
     {
         fun free() {
             stagingVertices.free()
             stagingIndices.free()
-            stagingUniform.free()
             vertexBuffer.free()
             indexBuffer.free()
-            uniformBuffer.free()
         }
     }
 }

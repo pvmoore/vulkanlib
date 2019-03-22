@@ -14,6 +14,7 @@ import vulkan.api.pipeline.bindPipeline
 import vulkan.app.KeyEvent
 import vulkan.app.VulkanApplication
 import vulkan.common.*
+import vulkan.misc.RGBA
 import vulkan.misc.megabytes
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -95,15 +96,13 @@ private class ComputeSimpleBufferCopy : VulkanClient(
     private lateinit var vk: VulkanApplication
     private lateinit var device: VkDevice
 
-    private var uniformBufferAlloc : BufferAlloc? = null
-
-    private var descriptorPool: VkDescriptorPool? = null
-    private var dsLayout: VkDescriptorSetLayout? = null
-    private var descriptorSet: VkDescriptorSet? = null
-
-    private var computeCP: VkCommandPool? = null
-    private var computeCommandBuffer:VkCommandBuffer? = null
-    private var computeCompleteSemaphore:VkSemaphore? = null
+    private var uniformBufferAlloc       = null as BufferAlloc?
+    private var descriptorPool           = null as VkDescriptorPool?
+    private var dsLayout                 = null as VkDescriptorSetLayout?
+    private var descriptorSet            = null as VkDescriptorSet?
+    private var computeCP                = null as VkCommandPool?
+    private var computeCommandBuffer     = null as VkCommandBuffer?
+    private var computeCompleteSemaphore = null as VkSemaphore?
 
     private val uploader:StagingTransfer by lazy { vk.createStagingTransfer(buffers.get(VulkanBuffers.STAGING_UPLOAD)) }
 
@@ -114,8 +113,7 @@ private class ComputeSimpleBufferCopy : VulkanClient(
     private val ubo           = UBO(1f, 2f)
     private val specConstants = SpecConstants(2).set(0, 5f).set(1, 7f)
     private val pushConstants = PushConstants(2)
-
-    private val clearColour   = VkClearValue.calloc(1)
+    private val clearColour   = ClearColour(RGBA(0.2f, 0.1f, 0.2f, 1f))
     private val bufferBarrier = VkBufferMemoryBarrier.calloc(1)
 
     private val memory = VulkanMemory()
@@ -155,7 +153,7 @@ private class ComputeSimpleBufferCopy : VulkanClient(
 
             uploader.destroy()
 
-            clearColour.free()
+            clearColour.destroy()
             bufferBarrier.free()
 
             dsLayout?.destroy()
@@ -225,7 +223,7 @@ private class ComputeSimpleBufferCopy : VulkanClient(
         b.beginRenderPass(
             vk.graphics.renderPass,
             res.frameBuffer,
-            clearColour,
+            clearColour.value,
             vk.graphics.swapChain.area,
             true
         );
@@ -324,12 +322,6 @@ private class ComputeSimpleBufferCopy : VulkanClient(
         uniformBufferAlloc = buffers.get(VulkanBuffers.UNIFORM).allocate(ubo.size())
         log.info("uniformBufferAlloc = $uniformBufferAlloc")
 
-        /** Set the clear colour */
-        clearColour.color()
-            .float32(0, 0.5f)
-            .float32(1, 0.1f)
-            .float32(2, 0.1f)
-            .float32(3, 0.1f)
 
         /** Initialise the input data */
         val dataIn = FloatArray(size = 1.megabytes(), init = {

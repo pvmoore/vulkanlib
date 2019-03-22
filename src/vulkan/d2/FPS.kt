@@ -7,7 +7,7 @@ import vulkan.common.RenderContext
 import vulkan.misc.RGBA
 
 class FPS(private val suffix:String = " fps",
-          private val colour: RGBA = RGBA(1f,1f,0.7f,1f),
+          private val colour:RGBA   = RGBA(1f,1f,0.7f,1f),
           private var pos:Vector2f? = null)
 {
     private lateinit var context:RenderContext

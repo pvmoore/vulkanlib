@@ -22,15 +22,13 @@ class RoundRectangles {
     private lateinit var context:RenderContext
     private lateinit var buffers: BufferAllocs
 
-    private var maxRects = 0
-
+    private var maxRects        = 0
     private val labels          = HashMap<String, Int>()
     private val vertices        = Vertices()
     private val ubo             = UBO()
     private val pipeline        = GraphicsPipeline()
     private val descriptors     = Descriptors()
-    private var colour:RGBA     = WHITE
-    private var uboChanged      = true
+    private var colour          = WHITE
     private var verticesChanged = true
 
     fun init(context: RenderContext, maxRects:Int) : RoundRectangles {
@@ -42,13 +40,14 @@ class RoundRectangles {
         return this
     }
     fun destroy() {
+        ubo.destroy()
         buffers.free()
         descriptors.destroy()
         pipeline.destroy()
     }
     fun camera(camera : Camera2D) : RoundRectangles {
         camera.VP(ubo.viewProj)
-        uboChanged = true
+        ubo.setStale()
         return this
     }
     fun setColour(c: RGBA) : RoundRectangles {
@@ -94,9 +93,7 @@ class RoundRectangles {
         if(verticesChanged) {
             updateVertices(res)
         }
-        if(uboChanged) {
-            updateUBO(res)
-        }
+        ubo.transfer(res.cmd)
     }
     fun insideRenderPass(frame: FrameInfo, res:PerFrameResource) {
         if(vertices.numRectangles==0) return
@@ -127,6 +124,8 @@ class RoundRectangles {
 
         buffers = BufferAllocs(context.buffers)
 
+        ubo.init(context)
+
         /**
          * Bindings:
          *    0     uniform buffer
@@ -141,7 +140,7 @@ class RoundRectangles {
         descriptors
             .layout(0)
             .createSet()
-            .add(buffers.uniformBuffer)
+            .add(ubo.deviceBuffer)
             .write()
 
         pipeline.init(context)
@@ -160,24 +159,16 @@ class RoundRectangles {
 
         verticesChanged = false
     }
-    private fun updateUBO(res : PerFrameResource) {
-        ubo.transfer(res.cmd, buffers.stagingUniform, buffers.uniformBuffer)
-        uboChanged = false
-    }
 
     //=======================================================================================================
     private inner class BufferAllocs(b: VulkanBuffers) {
         var stagingVertices: BufferAlloc = b.get(VulkanBuffers.STAGING_UPLOAD).allocate(vertices.vertexSize * maxRects).orThrow()
-        val stagingUniform: BufferAlloc = b.get(VulkanBuffers.STAGING_UPLOAD).allocate(ubo.size()).orThrow()
-
         val vertexBuffer: BufferAlloc = b.get(VulkanBuffers.VERTEX).allocate(vertices.vertexSize * maxRects).orThrow()
-        val uniformBuffer: BufferAlloc = b.get(VulkanBuffers.UNIFORM).allocate(ubo.size()).orThrow()
+
 
         fun free() {
             stagingVertices.free()
-            stagingUniform.free()
             vertexBuffer.free()
-            uniformBuffer.free()
         }
     }
     private class Vertices : AbsTransferableArray() {
@@ -262,5 +253,5 @@ class RoundRectangles {
             array[i+5].pos.set(pos.x, pos.y+size.y)
         }
     }
-    private class UBO(val viewProj: Matrix4f = Matrix4f()) : AbsTransferable()
+    private class UBO(val viewProj: Matrix4f = Matrix4f()) : AbsUBO()
 }

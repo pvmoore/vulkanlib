@@ -18,22 +18,17 @@ import java.util.*
 
 class Lines {
     private lateinit var context:RenderContext
-    private var maxLines = 0
 
+    private var maxLines        = 0
     private val descriptors     = Descriptors()
     private val pipeline        = GraphicsPipeline()
     private val ubo             = UBO()
     private val points          = Points()
-
-    private var uboStale        = true
     private var pointsStale     = true
-    private var colour: RGBA    = WHITE
+    private var colour          = WHITE
     private var thickness       = 1.5f
-
-    private var stagingUniform  : BufferAlloc? = null
-    private var uniformBuffer   : BufferAlloc? = null
-    private var stagingVertices : BufferAlloc? = null
-    private var verticesBuffer  : BufferAlloc? = null
+    private var stagingVertices = null as BufferAlloc?
+    private var verticesBuffer  = null as BufferAlloc?
 
     fun init(context:RenderContext, maxLines:Int) : Lines {
         this.maxLines = maxLines
@@ -41,10 +36,7 @@ class Lines {
 
         assert(maxLines > 0)
 
-        stagingUniform = context.buffers.get(VulkanBuffers.STAGING_UPLOAD)
-            .allocate(ubo.size())
-        uniformBuffer = context.buffers.get(VulkanBuffers.UNIFORM)
-            .allocate(ubo.size())
+        ubo.init(context)
 
         val verticesSize = points.elementInstance().size() * maxLines
 
@@ -67,7 +59,7 @@ class Lines {
         descriptors
             .layout(0)
             .createSet()
-            .add(uniformBuffer!!)
+            .add(ubo.deviceBuffer)
             .write()
 
         pipeline.init(context)
@@ -82,12 +74,13 @@ class Lines {
         return this
     }
     fun destroy() {
+        ubo.destroy()
         descriptors.destroy()
         pipeline.destroy()
     }
     fun camera(camera: Camera2D) : Lines {
         camera.VP(ubo.viewProj)
-        uboStale = true
+        ubo.setStale()
         return this
     }
     fun colour(c:RGBA) : Lines {
@@ -125,9 +118,8 @@ class Lines {
     fun beforeRenderPass(frame: FrameInfo, res: PerFrameResource) {
         if(points.numPoints()==0) return
 
-        if(uboStale) {
-            updateUniform(frame, res)
-        }
+        ubo.transfer(res.cmd)
+
         if(pointsStale) {
             updatePoints(frame, res)
         }
@@ -157,10 +149,6 @@ class Lines {
         }
     }
     //==========================================================================================
-    private fun updateUniform(frame: FrameInfo, res: PerFrameResource) {
-        ubo.transfer(res.cmd, stagingUniform, uniformBuffer!!)
-        uboStale = false
-    }
     private fun updatePoints(frame: FrameInfo, res: PerFrameResource) {
         points.transfer(res.cmd, stagingVertices!!.rangeOf(0, points.size()),
                         verticesBuffer!!.rangeOf(0, points.size()))
@@ -191,5 +179,5 @@ class Lines {
             array.clear()
         }
     }
-    private class UBO(val viewProj:Matrix4f = Matrix4f()) : AbsTransferable()
+    private class UBO(val viewProj:Matrix4f = Matrix4f()) : AbsUBO()
 }

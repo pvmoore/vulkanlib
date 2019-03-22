@@ -24,8 +24,6 @@ class Model3D {
     private val uboVert         = UBOVert()
     private val uboFrag         = UBOFrag()
     private val vertices        = Vertices()
-    private var vertUboChanged  = true
-    private var fragUboChanged  = true
     private var vertsChanged    = true
     private var modelChanged    = true
     private var sampler         = null as VkSampler?
@@ -33,8 +31,8 @@ class Model3D {
     private var vertsDeviceBuf  = null as BufferAlloc?
 
     private var texture         = null as Texture?
-    private var scale    = 1f
-    private val rotation = Vector3f()
+    private var scale           = 1f
+    private val rotation        = Vector3f()
 
     fun init(context:RenderContext, filename:String) {
 
@@ -116,7 +114,7 @@ class Model3D {
         camera.VP(uboVert.mvp)
         camera.V(uboVert.v)
         camera.invV(uboVert.invV)
-        vertUboChanged = true
+        uboVert.setStale()
     }
     fun rotation(r:Vector3f) {
         this.rotation.set(r)
@@ -128,7 +126,7 @@ class Model3D {
     }
     fun lightPos(p:Vector3f) {
         uboVert.lightPos.set(p)
-        vertUboChanged = true
+        uboVert.setStale()
     }
     fun beforeRenderPass(frame: FrameInfo, res: PerFrameResource) {
         if(vertsChanged) {
@@ -139,18 +137,13 @@ class Model3D {
             uboVert.m.identity()
             uboVert.m.scale(scale)
             uboVert.m.rotateAffineXYZ(rotation.x, rotation.y, rotation.z)
+            uboVert.setStale()
 
-            vertUboChanged = true
             modelChanged   = false
         }
-        if(vertUboChanged) {
-            uboVert.transfer(res.cmd)
-            vertUboChanged = false
-        }
-        if(fragUboChanged) {
-            uboFrag.transfer(res.cmd)
-            fragUboChanged = false
-        }
+
+        uboVert.transfer(res.cmd)
+        uboFrag.transfer(res.cmd)
     }
     fun insideRenderPass(frame: FrameInfo, res: PerFrameResource) {
         res.cmd.run {

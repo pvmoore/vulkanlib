@@ -4,8 +4,9 @@ import org.lwjgl.vulkan.VkCommandBuffer
 import vulkan.api.buffer.BufferAlloc
 
 abstract class AbsUBO : AbsTransferable() {
-    private var stagingBuf: BufferAlloc? = null
-    private var deviceBuf:BufferAlloc? = null
+    private var stagingBuf = null as BufferAlloc?
+    private var deviceBuf  = null as BufferAlloc?
+    private var isStale    = true
 
     val deviceBuffer get() = deviceBuf!!
 
@@ -17,9 +18,15 @@ abstract class AbsUBO : AbsTransferable() {
         stagingBuf?.free()
         deviceBuf?.free()
     }
+    fun setStale() {
+        isStale = true
+    }
     fun transfer(cmd: VkCommandBuffer) {
-        assert(deviceBuf!=null)
-        super.transfer(cmd, stagingBuf, deviceBuf!!)
+        if(isStale) {
+            assert(deviceBuf != null)
+            super.transfer(cmd, stagingBuf, deviceBuf!!)
+            isStale = false
+        }
     }
     /**
      * Uniform buffers must be a multiple of 16 bytes

@@ -3,7 +3,6 @@ import org.joml.Matrix4f
 import org.lwjgl.glfw.GLFW
 import org.lwjgl.vulkan.VK10.VK_FORMAT_R8_UNORM
 import org.lwjgl.vulkan.VK10.VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT
-import org.lwjgl.vulkan.VkClearValue
 import org.lwjgl.vulkan.VkDevice
 import org.lwjgl.vulkan.VkPhysicalDeviceFeatures
 import vulkan.api.*
@@ -14,6 +13,7 @@ import vulkan.d2.Camera2D
 import vulkan.d2.FPS
 import vulkan.d2.Quad
 import vulkan.maths.ImprovedNoise
+import vulkan.misc.RGBA
 import vulkan.misc.megabytes
 import vulkan.texture.RawImageData
 import vulkan.texture.Textures
@@ -62,13 +62,8 @@ private class TestCreateNoiseTexture : VulkanClient(
     private val camera          = Camera2D()
     private val quad            = Quad()
     private val fps             = FPS()
-    private val clearColour     = VkClearValue.calloc(1).color {
-        it.float32(0, 0.0f)
-          .float32(1, 0.2f)
-          .float32(2, 0.0f)
-          .float32(3, 1.0f)
-    }
-    private var sampler: VkSampler? = null
+    private val clearColour     = ClearColour(RGBA(0f, 0.2f, 0f, 1f))
+    private var sampler         = null as VkSampler?
 
     override fun enableFeatures(f : VkPhysicalDeviceFeatures) {
 
@@ -77,7 +72,7 @@ private class TestCreateNoiseTexture : VulkanClient(
         device?.let {
             device.waitForIdle()
 
-            clearColour.free()
+            clearColour.destroy()
 
             sampler?.destroy()
 
@@ -150,7 +145,7 @@ private class TestCreateNoiseTexture : VulkanClient(
             b.beginRenderPass(
                 vk.graphics.renderPass,
                 res.frameBuffer,
-                clearColour,
+                clearColour.value,
                 vk.graphics.swapChain.area,
                 true
             )

@@ -32,8 +32,7 @@ class Text {
     private val pipeline        = GraphicsPipeline()
     private val descriptors     = Descriptors()
     private val textChunks      = ArrayList<TextChunk>()
-    private var colour: RGBA    = WHITE
-    private var uboChanged      = true
+    private var colour          = WHITE
     private var verticesChanged = true
     private val labels          = HashMap<String,Int>()
 
@@ -53,6 +52,7 @@ class Text {
         return this
     }
     fun destroy() {
+        ubo.destroy()
         sampler.destroy()
         buffers.free()
         descriptors.destroy()
@@ -60,7 +60,7 @@ class Text {
     }
     fun camera(camera : Camera2D) : Text {
         camera.VP(ubo.viewProj)
-        uboChanged = true
+        ubo.setStale()
         return this
     }
     fun setColour(c: RGBA) : Text {
@@ -69,12 +69,12 @@ class Text {
     }
     fun setDropShadowColour(c:RGBA) : Text {
         ubo.dsColour.set(c)
-        uboChanged = true
+        ubo.setStale()
         return this
     }
     fun setDropShadowOffset(o:Vector2f) : Text {
         ubo.dsOffset.set(o)
-        uboChanged = true
+        ubo.setStale()
         return this
     }
     fun setSize(size:Float) : Text {
@@ -144,9 +144,8 @@ class Text {
         if(verticesChanged) {
             updateVertices(res)
         }
-        if(uboChanged) {
-            updateUBO(res)
-        }
+
+        ubo.transfer(res.cmd)
     }
     fun insideRenderPass(frame: FrameInfo, res: PerFrameResource) {
         if(vertices.numCharacters==0) return
@@ -187,6 +186,8 @@ class Text {
 
         buffers = BufferAllocs(context.buffers)
 
+        ubo.init(context)
+
         sampler = context.device.createSampler { info-> }
 
         /**
@@ -204,7 +205,7 @@ class Text {
         descriptors
             .layout(0)
             .createSet()
-            .add(buffers.uniformBuffer)
+            .add(ubo.deviceBuffer)
             .add(font.texture.image.getView(),
                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                  sampler)
@@ -232,10 +233,6 @@ class Text {
             buffers.vertexBuffer.rangeOf(0,vertices.size()))
 
         verticesChanged = false
-    }
-    private fun updateUBO(res : PerFrameResource) {
-        ubo.transfer(res.cmd, buffers.stagingUniform, buffers.uniformBuffer)
-        uboChanged = false
     }
     private fun countCharacters():Int {
         return textChunks.sumBy { it.text.length }
@@ -283,16 +280,12 @@ class Text {
     //=======================================================================================================
     private inner class BufferAllocs(b: VulkanBuffers) {
         var stagingVertices: BufferAlloc = b.get(VulkanBuffers.STAGING_UPLOAD).allocate(vertices.vertexSize * maxCharacters).orThrow()
-        val stagingUniform: BufferAlloc = b.get(VulkanBuffers.STAGING_UPLOAD).allocate(ubo.size()).orThrow()
-
         val vertexBuffer: BufferAlloc = b.get(VulkanBuffers.VERTEX).allocate(vertices.vertexSize * maxCharacters).orThrow()
-        val uniformBuffer: BufferAlloc = b.get(VulkanBuffers.UNIFORM).allocate(ubo.size()).orThrow()
+
 
         fun free() {
             stagingVertices.free()
-            stagingUniform.free()
             vertexBuffer.free()
-            uniformBuffer.free()
         }
     }
     /** Each vertex is a single POINT */
@@ -322,7 +315,7 @@ class Text {
     private class UBO(val viewProj: Matrix4f = Matrix4f(),
                       val dsColour:Vector4f  = Vector4f(0f,0f,0f, 0.75f),
                       val dsOffset:Vector2f  = Vector2f(-0.0025f, 0.0025f),
-                      val _pad:Vector2f      = Vector2f()) : AbsTransferable()
+                      val _pad:Vector2f      = Vector2f()) : AbsUBO()
 
     private class TextChunk(
         var text:String,

@@ -61,11 +61,8 @@ private class ComputeBenchmark : VulkanClient(headless = true) {
     private val buffers     = VulkanBuffers()
     private val descriptors = Descriptors()
     private val pipeline    = ComputePipeline()
-
-    private var computeCP: VkCommandPool?   = null
-    private var computeCB: VkCommandBuffer? = null
-
-
+    private var computeCP   = null as VkCommandPool?
+    private var computeCB   = null as VkCommandBuffer?
 
     override fun destroy() {
         device?.let {
