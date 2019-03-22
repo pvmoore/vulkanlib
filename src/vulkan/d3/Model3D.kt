@@ -88,8 +88,8 @@ class Model3D {
             .init(context)
             .withDSLayouts(arrayOf(descriptors.layout(0).dsLayout))
             .withShaderProperties(mapOf(), listOf())
-            .withShader(VK_SHADER_STAGE_VERTEX_BIT,   "OBJModel/OBJModel.vert")
-            .withShader(VK_SHADER_STAGE_FRAGMENT_BIT, "OBJModel/OBJModel.frag")
+            .withShader(VK_SHADER_STAGE_VERTEX_BIT,   "Model3D/Model3D.vert")
+            .withShader(VK_SHADER_STAGE_FRAGMENT_BIT, "Model3D/Model3D.frag")
             .withVertexInputState(vertices.elementInstance(), VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .withRasterisationState { info->
                 info.cullMode(VK_CULL_MODE_BACK_BIT)
