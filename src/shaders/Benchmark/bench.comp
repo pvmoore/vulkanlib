@@ -6,7 +6,7 @@
 #define GROUP_SIZE_X 64
 #define GROUP_SIZE_Y 1
 layout(local_size_x = GROUP_SIZE_X,
-local_size_y = GROUP_SIZE_Y) in;
+       local_size_y = GROUP_SIZE_Y) in;
 
 
 layout(set=0, binding=0, std430) readonly buffer I0 {

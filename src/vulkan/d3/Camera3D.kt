@@ -1,6 +1,7 @@
 package vulkan.d3
 
 import org.joml.Matrix4f
+import org.joml.Quaternionf
 import org.joml.Vector2i
 import org.joml.Vector3f
 import vulkan.maths.*
@@ -14,9 +15,6 @@ class Camera3D(val windowSize: Vector2i = Vector2i()) {
     private var recalculateViewProj = true
     private var recalculateInvView  = true
     private var recalculateInvVP    = true
-    private var fov                 = Math.toRadians(60.0).toFloat()
-    private var near                = 0.1f
-    private var far                 = 1000f
     private var focalLength         = 0f
     private val view                = Matrix4f()
     private val proj                = Matrix4f()
@@ -31,6 +29,10 @@ class Camera3D(val windowSize: Vector2i = Vector2i()) {
     val right:Vector3f      get() = forward.copy().cross(up)
     val focalPoint:Vector3f get() = position+forward*focalLength
 
+    var fov  = Math.toRadians(60.0).toFloat()   ; private set
+    var near = 0.1f                             ; private set
+    var far  = 1000f                            ; private set
+
     /**
      * Set view assuming the up vector is 0,1,0
      */
@@ -43,8 +45,13 @@ class Camera3D(val windowSize: Vector2i = Vector2i()) {
             // Up is anywhere around the y axis
             this.up.set(0f, 0f, -1f)
         } else {
-            this.up.set(forward.rotatedTo(Vector3f(0f,-1f,0f), Math.toRadians(90.0)))
+            this.up.set(forward.rotatedTo(Vector3f(0f,1f,0f), Math.toRadians(90.0)))
         }
+    }
+    fun setOrientation(forward:Vector3f, up:Vector3f) {
+        this.forward.set(forward).normalize()
+        this.up.set(up).normalize()
+        recalculateView = true
     }
     fun fovNearFar(fov:Float, near:Float, far:Float) {
         this.fov  = fov
@@ -55,6 +62,15 @@ class Camera3D(val windowSize: Vector2i = Vector2i()) {
     fun resizeWindow(newWindowSize:Vector2i) {
         windowSize.set(newWindowSize)
         recalculateProj = true
+    }
+    fun lookAt(point:Vector3f) {
+        val q = Quaternionf().rotationTo(forward, point)
+
+        forward.rotate(q)
+        //val r = right
+
+        up.rotate(q)
+        recalculateView = true
     }
     fun moveForward(f:Float) {
         val dist  = forward * f
@@ -85,6 +101,10 @@ class Camera3D(val windowSize: Vector2i = Vector2i()) {
         forward.normalize()
         recalculateView = true
     }
+    fun yawByDegrees(deg:Double) {
+        forward.rotateY(Math.toRadians(deg).toFloat())
+        recalculateView = true
+    }
     /**
      * move focal point up/down (around x plane)
      */
@@ -96,6 +116,10 @@ class Camera3D(val windowSize: Vector2i = Vector2i()) {
         up.set(right.right(forward))
         recalculateView = true
     }
+    fun pitchByDegrees(deg:Double) {
+        up.rotateX(Math.toRadians(deg).toFloat())
+        recalculateView = true
+    }
     /**
      * tip (around z plane)
      */
@@ -103,6 +127,10 @@ class Camera3D(val windowSize: Vector2i = Vector2i()) {
         val dist = right * f
         up += dist
         up.normalize()
+        recalculateView = true
+    }
+    fun rollByDegrees(deg:Double) {
+        up.rotateZ(Math.toRadians(deg).toFloat())
         recalculateView = true
     }
     fun P(dest:Matrix4f?=null) {

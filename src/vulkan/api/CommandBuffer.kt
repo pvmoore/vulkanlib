@@ -48,6 +48,7 @@ fun VkCommandBuffer.end():VkCommandBuffer {
     vkEndCommandBuffer(this).check()
     return this
 }
+
 /**
  *  Only call reset if VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT was set on the pool.
  */

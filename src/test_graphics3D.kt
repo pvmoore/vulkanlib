@@ -217,7 +217,7 @@ private class Graphics3DApplication : VulkanClient(
         obj.run {
             init(context, "models/suzanne.obj.txt")
             camera(camera3d)
-            lightPos(Vector3f(500f,700f,500f))
+            lightPos(Vector3f(200f,1000f,800f))
             scale(50f)
         }
     }

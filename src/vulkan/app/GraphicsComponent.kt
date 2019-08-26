@@ -26,7 +26,6 @@ class GraphicsComponent(val client: VulkanClient) {
     private var surface:VkSurfaceKHR    = VK_NULL_HANDLE
     private var window:Long             = VK_NULL_HANDLE
     private var frameResourceIndex:Long = 0
-    private val frameResources          = ArrayList<PerFrameResource>()
     private val windowEvents            = ArrayList<WindowEvent>()
 
     private lateinit var vk:VulkanApplication
@@ -38,11 +37,12 @@ class GraphicsComponent(val client: VulkanClient) {
     private var previousTimestamp   = System.nanoTime()
     private var dragStart:Vector2f? = null
 
-    val surfaceFormat = SurfaceFormat()
-    val animations    = Animations
-    val fonts         = Fonts
-    var isInitialised = false
-    val inputState    = InputState()
+    val surfaceFormat  = SurfaceFormat()
+    val animations     = Animations
+    val fonts          = Fonts
+    var isInitialised  = false
+    val inputState     = InputState()
+    val frameResources = ArrayList<PerFrameResource>()
 
     lateinit var swapChain: SwapChain
     lateinit var renderPass: VkRenderPass

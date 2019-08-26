@@ -114,10 +114,17 @@ fun canPresent(device:VkPhysicalDevice, surface:Long, queueFamilyIndex:Int):Bool
         return result.get(0) == 1
     }
 }
+/** @return object that needs to be freed by the caller */
 fun VkPhysicalDevice.getProperties(): VkPhysicalDeviceProperties {
     val properties = VkPhysicalDeviceProperties.calloc()
     vkGetPhysicalDeviceProperties(this, properties)
     return properties
+}
+/** @return object that needs to be freed by the caller */
+fun VkPhysicalDevice.getFeatures() : VkPhysicalDeviceFeatures2 {
+    val features = VkPhysicalDeviceFeatures2.calloc()
+    VK11.vkGetPhysicalDeviceFeatures2(this, features)
+    return features
 }
 /** @return Buffer that needs to be freed by caller */
 fun VkPhysicalDevice.getExtensions():VkExtensionProperties.Buffer {
@@ -128,6 +135,7 @@ fun VkPhysicalDevice.getExtensions():VkExtensionProperties.Buffer {
     memFree(count)
     return extensions
 }
+
 fun getFormats(stack:MemoryStack, pDevice:VkPhysicalDevice, surface:Long):VkSurfaceFormatKHR.Buffer {
     val count = stack.mallocInt(1)
     vkGetPhysicalDeviceSurfaceFormatsKHR(pDevice, surface, count, null).check()

@@ -114,7 +114,9 @@ private class ComputeSimpleBufferCopy : VulkanClient(
     private val specConstants = SpecConstants(2).set(0, 5f).set(1, 7f)
     private val pushConstants = PushConstants(2)
     private val clearColour   = ClearColour(RGBA(0.2f, 0.1f, 0.2f, 1f))
+
     private val bufferBarrier = VkBufferMemoryBarrier.calloc(1)
+    private val memoryBarrier = VkMemoryBarrier.calloc(1)
 
     private val memory = VulkanMemory()
     private val buffers = VulkanBuffers()
@@ -155,6 +157,7 @@ private class ComputeSimpleBufferCopy : VulkanClient(
 
             clearColour.destroy()
             bufferBarrier.free()
+            memoryBarrier.free()
 
             dsLayout?.destroy()
             descriptorPool?.destroy()
@@ -200,9 +203,19 @@ private class ComputeSimpleBufferCopy : VulkanClient(
                 pushConstants.floatBuffer
             )
             .dispatch(1.megabytes(), 1, 1)
+
             .copyBuffer(
                 buffers.get("output"),
                 buffers.get(VulkanBuffers.STAGING_DOWNLOAD))
+
+//            .pipelineBarrier(
+//                srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+//                destStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+//                dependencyFlags = 0,
+//                bufferMemoryBarriers = null,
+//                imageMemoryBarriers = null,
+//                memoryBarriers = memoryBarrier
+//            )
 
             .end()
 
@@ -281,6 +294,8 @@ private class ComputeSimpleBufferCopy : VulkanClient(
 
             val b = buffers.get(VulkanBuffers.STAGING_DOWNLOAD)
 
+            println("type="+b.memory.type)
+
             b.mapForReading(0, b.size) { bb->
                 val floats = bb.asFloatBuffer()
 
@@ -289,15 +304,16 @@ private class ComputeSimpleBufferCopy : VulkanClient(
                 )
                 val actual = (0..16).map { floats[it] }.toFloatArray()
 
-//            print("Output:")
-//            (0..16).forEach {
-//                print("${floats[it]}, ")
-//            }
-//            println()
+            print("Output:")
+            (0..16).forEach {
+                print("${floats[it]}, ")
+            }
+            println()
 
                 assert(actual.contentEquals(expected))
             }
         }
+
         checkResult()
     }
     private fun initialise() {
@@ -313,10 +329,10 @@ private class ComputeSimpleBufferCopy : VulkanClient(
 
         buffers.init(vk)
             .createStagingUploadBuffer(VulkanBuffers.STAGING_UPLOAD, memory.get(VulkanMemory.STAGING_UPLOAD), 4.megabytes())
-            .createStagingUploadBuffer(VulkanBuffers.STAGING_DOWNLOAD, memory.get(VulkanMemory.STAGING_DOWNLOAD), 4.megabytes())
+            .createStagingDownloadBuffer(VulkanBuffers.STAGING_DOWNLOAD, memory.get(VulkanMemory.STAGING_DOWNLOAD), 4.megabytes())
             .createUniformBuffer(VulkanBuffers.UNIFORM, memory.get(VulkanMemory.DEVICE), 1.megabytes())
             .createStorageBuffer("input", memory.get(VulkanMemory.DEVICE), 4.megabytes())
-            .createStorageBuffer("output", memory.get(VulkanMemory.DEVICE), 4.megabytes())
+            .createStorageBuffer("output", memory.get(VulkanMemory.DEVICE), 4.megabytes(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
         log.info("$buffers")
 
         uniformBufferAlloc = buffers.get(VulkanBuffers.UNIFORM).allocate(ubo.size())
@@ -352,6 +368,12 @@ private class ComputeSimpleBufferCopy : VulkanClient(
             .buffer(buffers.get("output").handle)
             .offset(0)
             .size(VK_WHOLE_SIZE)
+
+        memoryBarrier
+            .sType(VK_STRUCTURE_TYPE_MEMORY_BARRIER)
+            .srcAccessMask(VK_ACCESS_SHADER_WRITE_BIT)
+            .dstAccessMask(VK_ACCESS_TRANSFER_READ_BIT)
+
 
         computeCompleteSemaphore = device.createSemaphore()
 

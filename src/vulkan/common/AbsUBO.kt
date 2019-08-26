@@ -22,8 +22,10 @@ abstract class AbsUBO : AbsTransferable() {
         isStale = true
     }
     fun transfer(cmd: VkCommandBuffer) {
+        assert(deviceBuf!=null)
         if(isStale) {
             assert(deviceBuf != null)
+
             super.transfer(cmd, stagingBuf, deviceBuf!!)
             isStale = false
         }

@@ -13,6 +13,7 @@ import vulkan.api.draw
 import vulkan.api.pipeline.GraphicsPipeline
 import vulkan.api.pipeline.bindPipeline
 import vulkan.common.*
+import vulkan.maths.times
 import vulkan.misc.megabytes
 import vulkan.texture.Texture
 import vulkan.texture.Textures
@@ -40,7 +41,8 @@ class Model3D {
 
         OBJLoader.load(filename, object : OBJLoader.Callback {
             override fun vertex(pos : Vector3f, normal : Vector3f?, uv : Vector2f?, colour : Vector3f?) {
-                vertices.add(pos, normal, uv, colour)
+                // flip the y-axis
+                vertices.add(pos*Vector3f(1f,-1f,1f), normal, uv, colour)
             }
             override fun material(name : String) {
                 texture = texture ?: textures.get(name)
@@ -91,7 +93,7 @@ class Model3D {
             .withVertexInputState(vertices.elementInstance(), VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
             .withRasterisationState { info->
                 info.cullMode(VK_CULL_MODE_BACK_BIT)
-                info.frontFace(VK_FRONT_FACE_CLOCKWISE)
+                info.frontFace(VK_FRONT_FACE_COUNTER_CLOCKWISE)
             }
             .withDepthStencilState { info->
                 info.depthTestEnable(true)
