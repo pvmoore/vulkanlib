@@ -46,9 +46,7 @@ class BufferAlloc(val buffer: VkBuffer,
 
 //==========================================================================================
 
-fun VkCommandBuffer.copyBuffer(src: BufferAlloc, dest: BufferAlloc)
-    : VkCommandBuffer
-{
+fun VkCommandBuffer.copyBuffer(src: BufferAlloc, dest: BufferAlloc) : VkCommandBuffer {
     assert(src.size==dest.size)
     assert(src.buffer.handle!=VK_NULL_HANDLE)
     assert(dest.buffer.handle!=VK_NULL_HANDLE)
