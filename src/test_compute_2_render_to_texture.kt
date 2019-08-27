@@ -288,8 +288,8 @@ private class RenderToTextureExample : VulkanClient(
 
             beforeRenderPass(frame, res)
 
-            // Renderpass initialLayout = UNDEFINED
-            // The renderpass loadOp    = CLEAR
+            // Renderpass initialLayout = GENERAL   (compute shader left it as GENERAL)
+            // The renderpass loadOp    = LOAD      (keep what the compute shader wrote)
             b.beginRenderPass(
                 context.renderPass!!,
                 res.frameBuffer,
