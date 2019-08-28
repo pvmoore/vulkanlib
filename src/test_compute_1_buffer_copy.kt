@@ -71,13 +71,10 @@ private class ComputeSimpleBufferCopy : VulkanClient(
     enableVsync             = false,
     prefNumSwapChainBuffers = 2)
 {
-    private data class UBO(val value1:Float, val value2:Float, val _pad: Vector2i = Vector2i()) : Transferable {
-        override fun writeTo(dest: ByteBuffer) {
-            dest.putFloat(value1)
-            dest.putFloat(value2)
-        }
-        override fun size() = 16
-    }
+    private data class UBO(val value1:Float,
+                           val value2:Float,
+                           val _pad: Vector2i = Vector2i()) : AbsUBO()
+
 //    inner class FrameResource {
 //        val computeBuffer    = computeCP!!.alloc()
 //        val transferBuffer   = transferCP!!.alloc()
@@ -98,7 +95,6 @@ private class ComputeSimpleBufferCopy : VulkanClient(
     private lateinit var device:VkDevice
     private lateinit var context:RenderContext
 
-    private var uniformBufferAlloc       = null as BufferAlloc?
     private var stagingUploadBuffer      = null as BufferAlloc?
     private var stagingDownloadBuffer    = null as BufferAlloc?
     private var shaderReadBuffer         = null as BufferAlloc?
@@ -163,6 +159,7 @@ private class ComputeSimpleBufferCopy : VulkanClient(
             uploader.destroy()
 
             fps.destroy()
+            ubo.destroy()
 
             clearColour.destroy()
             bufferBarrier.free()
@@ -190,31 +187,31 @@ private class ComputeSimpleBufferCopy : VulkanClient(
         pushConstants.set(0, 10f)
         pushConstants.set(1, 20f)
 
-        val cmd = computeCommandBuffer!!
+        computeCommandBuffer!!.run {
+            beginOneTimeSubmit()
 
-        cmd.beginOneTimeSubmit()
+            transfer(ubo)
 
-            .copyBuffer(stagingUploadBuffer!!, shaderReadBuffer!!)
+            copyBuffer(stagingUploadBuffer!!, shaderReadBuffer!!)
 
-            .bindPipeline(pipeline)
-            .bindDescriptorSets(
+            bindPipeline(pipeline)
+            bindDescriptorSets(
                 VK_PIPELINE_BIND_POINT_COMPUTE,
                 pipeline!!.layout,
                 0,
                 arrayOf(descriptors.layout(0).set(0)),
                 intArrayOf()
             )
-            .pushConstants(
+            pushConstants(
                 pipeline!!.layout,
                 VK_SHADER_STAGE_COMPUTE_BIT,
                 0,
                 pushConstants.floatBuffer
             )
-            .dispatch(1.megabytes(), 1, 1)
+            dispatch(1.megabytes(), 1, 1)
+            copyBuffer(shaderWriteBuffer!!, stagingDownloadBuffer!!)
 
-            .copyBuffer(shaderWriteBuffer!!, stagingDownloadBuffer!!)
-
-//            .pipelineBarrier(
+//            pipelineBarrier(
 //                srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
 //                destStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
 //                dependencyFlags = 0,
@@ -223,10 +220,11 @@ private class ComputeSimpleBufferCopy : VulkanClient(
 //                memoryBarriers = memoryBarrier
 //            )
 
-            .end()
+            end()
+        }
 
         vk.queues.get(Queues.COMPUTE).submit(
-            arrayOf(cmd),
+            arrayOf(computeCommandBuffer!!),
             arrayOf(),      // wait semaphores
             intArrayOf(),   // wait stages
             arrayOf(computeCompleteSemaphore!!)       // signal semaphores
@@ -295,7 +293,7 @@ private class ComputeSimpleBufferCopy : VulkanClient(
                 val floats = bb.asFloatBuffer()
 
                 val expected = floatArrayOf(
-                    42f, 43f, 44f, 45f, 46f, 47f, 48f, 49f, 50f, 51f, 52f, 53f, 54f, 55f, 56f, 57f, 58f
+                    45f, 46f, 47f, 48f, 49f, 50f, 51f, 52f, 53f, 54f, 55f, 56f, 57f, 58f, 59f, 60f, 61f
                 )
                 val actual = (0..16).map { floats[it] }.toFloatArray()
 
@@ -336,8 +334,8 @@ private class ComputeSimpleBufferCopy : VulkanClient(
             .createStorageBuffer("output", memory.get(VulkanMemory.DEVICE), 4.megabytes(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT)
         log.info("$buffers")
 
-        uniformBufferAlloc = buffers.get(VulkanBuffers.UNIFORM).allocate(ubo.size())
-        log.info("uniformBufferAlloc = $uniformBufferAlloc")
+        //uniformBufferAlloc = buffers.get(VulkanBuffers.UNIFORM).allocate(ubo.size())
+        //log.info("uniformBufferAlloc = $uniformBufferAlloc")
 
         stagingUploadBuffer   = buffers.get(VulkanBuffers.STAGING_UPLOAD).allocate(4.megabytes())
         stagingDownloadBuffer = buffers.get(VulkanBuffers.STAGING_DOWNLOAD).allocate(4.megabytes())
@@ -346,6 +344,8 @@ private class ComputeSimpleBufferCopy : VulkanClient(
         shaderWriteBuffer = buffers.get("output").allocate(4.megabytes())
 
         this.context = RenderContext(vk, vk.device, vk.graphics.renderPass, buffers)
+
+        this.ubo.init(context)
 
         this.fps
             .init(context)
@@ -383,14 +383,6 @@ private class ComputeSimpleBufferCopy : VulkanClient(
 
 
         computeCompleteSemaphore = device.createSemaphore()
-
-        /** Write the UBO */
-        /** Must be a multiple of 16 bytes */
-        assert((ubo.size() and 15)==0)
-
-        uploader.upload(uniformBufferAlloc!!, ubo)
-
-        println("------------------------------------------------------------------------------------------")
     }
     private fun updateStagingUploadBuffer(array:FloatArray) {
 
@@ -430,7 +422,7 @@ private class ComputeSimpleBufferCopy : VulkanClient(
         /** Create 1 set from layout 0 */
         descriptors
             .layout(0).createSet()
-                .add(uniformBufferAlloc!!)
+                .add(ubo.deviceBuffer)
                 .add(shaderReadBuffer!!)
                 .add(shaderWriteBuffer!!)
             .write()

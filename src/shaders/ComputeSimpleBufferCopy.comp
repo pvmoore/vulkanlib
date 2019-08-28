@@ -41,5 +41,5 @@ uint g_index = gl_GlobalInvocationID.x;
 uint l_index = gl_LocalInvocationIndex;
 
 void main() {
-    dataOut[g_index] = dataIn[g_index] + pc.value1 + pc.value2 + ADD1 + ADD2;
+    dataOut[g_index] = dataIn[g_index] + pc.value1 + pc.value2 + ubo.value1 + ubo.value2 + ADD1 + ADD2;
 }

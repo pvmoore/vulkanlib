@@ -39,3 +39,7 @@ abstract class AbsUBO : AbsTransferable() {
         return s
     }
 }
+
+fun VkCommandBuffer.transfer(ubo:AbsUBO) {
+    ubo.transfer(this)
+}
