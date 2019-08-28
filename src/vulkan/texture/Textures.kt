@@ -37,7 +37,7 @@ class Textures(val name:String = "") {
 
     fun init(vk: VulkanApplication, sizeBytes:Int) : Textures {
         this.vk          = vk
-        this.commandPool = vk.device.createCommandPool(vk.queues.getFamily(Queues.TRANSFER),
+        this.commandPool = vk.device.createCommandPool(vk.queues.getFamily(Queues.TRANSFER).index,
                                                        VK_COMMAND_POOL_CREATE_TRANSIENT_BIT)
         allocateMemory(sizeBytes)
         return this

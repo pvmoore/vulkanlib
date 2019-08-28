@@ -138,7 +138,7 @@ private class ComputeBenchmark : VulkanClient(headless = true) {
             .build()
         println("pipeline = $pipeline")
 
-        computeCP = device.createCommandPool(vk.queues.getFamily(Queues.COMPUTE)).apply {
+        computeCP = device.createCommandPool(vk.queues.getFamily(Queues.COMPUTE).index).apply {
             computeCB = this.alloc()
 
             computeCB!!.run {

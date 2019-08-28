@@ -258,7 +258,7 @@ class GraphicsComponent(val client: VulkanClient) {
             GLFWVulkan.glfwCreateWindowSurface(vk.instance, window, null, pSurface).check()
             surface = pSurface.get(0)
         }
-        if(!canPresent(vk.physicalDevice, surface, vk.queues.getFamily(Queues.GRAPHICS))) {
+        if(!canPresent(vk.physicalDevice, surface, vk.queues.getFamily(Queues.GRAPHICS).index)) {
             throw Error("Can't present on this surface")
         }
     }
@@ -271,7 +271,7 @@ class GraphicsComponent(val client: VulkanClient) {
     }
     private fun createCommandPool() {
         commandPool = device.createCommandPool(
-            vk.queues.getFamily(Queues.GRAPHICS),
+            vk.queues.getFamily(Queues.GRAPHICS).index,
             VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT or VK_COMMAND_POOL_CREATE_TRANSIENT_BIT
         )
         log.info("Created graphics command pool using queue family ${vk.queues.getFamily(Queues.GRAPHICS)}")

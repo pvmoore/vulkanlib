@@ -6,6 +6,7 @@ import org.lwjgl.vulkan.VkQueueFamilyProperties
 import vulkan.api.VkRenderPass
 import vulkan.api.createRenderPass
 import vulkan.app.VulkanApplication
+import vulkan.misc.QueueFamily
 import vulkan.misc.VkFormat
 
 abstract class VulkanClient(
@@ -46,7 +47,7 @@ abstract class VulkanClient(
         props.forEachIndexed { i, family->
             if(family.queueCount()>0) {
 
-                if(!headless && queues.isGraphics(family.queueFlags()) and queues.canPresent(i)) {
+                if(!headless && queues.isGraphics(family.queueFlags()) and queues.canPresent(QueueFamily(i))) {
                     if(!queues.hasQueue(Queues.GRAPHICS) || !queues.isCompute(family.queueFlags())) {
                         queues.select(Queues.GRAPHICS, i, 1)
                     }

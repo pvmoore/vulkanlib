@@ -1,10 +1,12 @@
 package vulkan.common
 
 import org.lwjgl.glfw.GLFWVulkan.glfwGetPhysicalDevicePresentationSupport
-import org.lwjgl.system.MemoryStack
+import org.lwjgl.system.MemoryUtil
 import org.lwjgl.vulkan.*
 import org.lwjgl.vulkan.VK10.*
 import vulkan.api.getQueues
+import vulkan.misc.QueueFamily
+import vulkan.misc.VkQueueFlags
 import vulkan.misc.dump
 
 class Queues(private val client:VulkanClient) {
@@ -12,13 +14,20 @@ class Queues(private val client:VulkanClient) {
 
     private lateinit var instance:VkInstance
     private lateinit var physicalDevice:VkPhysicalDevice
+    private lateinit var queueFamilyProps:VkQueueFamilyProperties.Buffer
+
     private val queues         = HashMap<String, Array<VkQueue>>()
     private val selectedQueues = ArrayList<SelectedQueue>()
 
     fun init(instance:VkInstance, physicalDevice:VkPhysicalDevice) {
-        this.instance       = instance
-        this.physicalDevice = physicalDevice
+        this.instance         = instance
+        this.physicalDevice   = physicalDevice
+        this.queueFamilyProps = getQueueFamilyProps(physicalDevice)
+
         selectQueueFamilies()
+    }
+    fun destroy() {
+        queueFamilyProps.free()
     }
     fun deviceCreated(device: VkDevice) {
         /** Fetch the queues */
@@ -34,8 +43,8 @@ class Queues(private val client:VulkanClient) {
         queues[name]?.let { return it[index] }
         throw Error("Queue $name not found")
     }
-    fun getFamily(name:String) : Int {
-        return selectedQueues.first { it.name==name }.family
+    fun getFamily(name:String) : QueueFamily {
+        return QueueFamily(selectedQueues.first { it.name==name }.family)
     }
     fun select(name:String, family:Int, count:Int) {
         selectedQueues.removeIf { it.name==name }
@@ -45,10 +54,44 @@ class Queues(private val client:VulkanClient) {
         return selectedQueues.map { it.family to it.count}
     }
 
-    fun isGraphics(f:Int):Boolean = (f and VK_QUEUE_GRAPHICS_BIT) != 0
-    fun isCompute(f:Int):Boolean  = (f and VK_QUEUE_COMPUTE_BIT)  != 0
-    fun isTransfer(f:Int):Boolean = (f and VK_QUEUE_TRANSFER_BIT) != 0
-    fun canPresent(i:Int):Boolean = glfwGetPhysicalDevicePresentationSupport(instance, physicalDevice, i)
+    fun isGraphics(flags:Int):Boolean = (flags and VK_QUEUE_GRAPHICS_BIT) != 0
+    fun isCompute(flags:Int):Boolean  = (flags and VK_QUEUE_COMPUTE_BIT)  != 0
+    fun isTransfer(flags:Int):Boolean = (flags and VK_QUEUE_TRANSFER_BIT) != 0
+
+    fun hasGraphics(family: QueueFamily):Boolean {
+        return (queueFamilyProps[family.index].queueFlags() and VK_QUEUE_GRAPHICS_BIT) !=0
+    }
+    fun hasCompute(family: QueueFamily):Boolean {
+        return (queueFamilyProps[family.index].queueFlags() and VK_QUEUE_COMPUTE_BIT) !=0
+    }
+    fun canTransfer(family: QueueFamily):Boolean {
+        return (queueFamilyProps[family.index].queueFlags() and VK_QUEUE_TRANSFER_BIT) !=0
+    }
+    fun canPresent(family: QueueFamily):Boolean {
+        return glfwGetPhysicalDevicePresentationSupport(instance, physicalDevice, family.index)
+    }
+
+    /**
+     *  @return the first family with the given flags, or -1 if none found
+     */
+    fun findFirstFamilyWith(flags:VkQueueFlags) : VkQueueFlags {
+        val list = findAllFamiliesWith(flags)
+        if(list.isNotEmpty()) return list.first()
+        return -1
+    }
+    /**
+     *  @return all families with the given flags
+     */
+    fun findAllFamiliesWith(flags:VkQueueFlags) : List<VkQueueFlags> {
+        val list = mutableListOf<VkQueueFlags>()
+
+        queueFamilyProps.forEachIndexed { index, prop ->
+            if(prop.queueCount()>0 && (prop.queueFlags() and flags)==flags) {
+                list.add(index)
+            }
+        }
+        return list
+    }
 
     override fun toString() : String {
         val buf = StringBuilder("Selected queues ==>")
@@ -68,22 +111,20 @@ class Queues(private val client:VulkanClient) {
     private fun selectQueueFamilies() {
         log.info("Selecting queue families")
 
-        MemoryStack.stackPush().use { stack ->
-            val count = stack.mallocInt(1)
+        client.selectQueues(queueFamilyProps, this)
 
-            fun getQueueFamilyProps(pDevice: VkPhysicalDevice): VkQueueFamilyProperties.Buffer {
-                vkGetPhysicalDeviceQueueFamilyProperties(pDevice, count, null)
-                val queueCount = count.get(0)
-                val qFamilies = VkQueueFamilyProperties.callocStack(queueCount)
-                vkGetPhysicalDeviceQueueFamilyProperties(pDevice, count, qFamilies)
-                return qFamilies
-            }
-
-            val queueFamilyProps = getQueueFamilyProps(physicalDevice)
-            queueFamilyProps.dump()
-
-            client.selectQueues(queueFamilyProps, this)
-        }
         println("\t$this")
+    }
+    private fun getQueueFamilyProps(pDevice: VkPhysicalDevice): VkQueueFamilyProperties.Buffer {
+        val count = MemoryUtil.memAllocInt(1)
+        vkGetPhysicalDeviceQueueFamilyProperties(pDevice, count, null)
+        val queueCount = count.get(0)
+        val qFamilies = VkQueueFamilyProperties.calloc(queueCount)
+        vkGetPhysicalDeviceQueueFamilyProperties(pDevice, count, qFamilies)
+        MemoryUtil.memFree(count)
+
+        qFamilies.dump()
+
+        return qFamilies
     }
 }

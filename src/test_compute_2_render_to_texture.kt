@@ -191,10 +191,10 @@ private class RenderToTextureExample : VulkanClient(
             .camera(camera)
 
         this.computeCP = device.createCommandPool(
-            vk.queues.getFamily(Queues.COMPUTE)
+            vk.queues.getFamily(Queues.COMPUTE).index
         )
         this.transferCP = device.createCommandPool(
-            vk.queues.getFamily(Queues.TRANSFER),
+            vk.queues.getFamily(Queues.TRANSFER).index,
             VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT
         )
 
@@ -386,8 +386,8 @@ private class RenderToTextureExample : VulkanClient(
             .dstAccessMask(VK_ACCESS_SHADER_WRITE_BIT)
             .oldLayout(VK_IMAGE_LAYOUT_UNDEFINED)
             .newLayout(VK_IMAGE_LAYOUT_GENERAL)
-            .srcQueueFamilyIndex(vk.queues.getFamily(Queues.GRAPHICS))
-            .dstQueueFamilyIndex(vk.queues.getFamily(Queues.COMPUTE))
+            .srcQueueFamilyIndex(vk.queues.getFamily(Queues.GRAPHICS).index)
+            .dstQueueFamilyIndex(vk.queues.getFamily(Queues.COMPUTE).index)
 
         val postImageBarriers = VkImageMemoryBarrier.calloc(1)
             .sType(VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER)
@@ -395,8 +395,8 @@ private class RenderToTextureExample : VulkanClient(
             .dstAccessMask(VK_ACCESS_SHADER_READ_BIT)
             .oldLayout(VK_IMAGE_LAYOUT_GENERAL)
             .newLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
-            .srcQueueFamilyIndex(vk.queues.getFamily(Queues.COMPUTE))
-            .dstQueueFamilyIndex(vk.queues.getFamily(Queues.GRAPHICS))
+            .srcQueueFamilyIndex(vk.queues.getFamily(Queues.COMPUTE).index)
+            .dstQueueFamilyIndex(vk.queues.getFamily(Queues.GRAPHICS).index)
 
         graphics.frameResources.forEach { res ->
             val r = frameResources[res.index]

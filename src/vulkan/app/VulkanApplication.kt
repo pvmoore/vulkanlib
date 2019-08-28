@@ -119,6 +119,8 @@ class VulkanApplication(val client: VulkanClient) {
 
             if(graphics.isInitialised) graphics.destroy()
 
+            queues.destroy()
+
             it.destroy()
         }
         debugCallback?.free()

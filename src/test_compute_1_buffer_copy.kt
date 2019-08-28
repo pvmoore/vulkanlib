@@ -397,7 +397,7 @@ private class ComputeSimpleBufferCopy : VulkanClient(
     }
     private fun createCommandPools() {
         computeCP  = device.createCommandPool(
-            vk.queues.getFamily(Queues.COMPUTE),
+            vk.queues.getFamily(Queues.COMPUTE).index,
              VK_COMMAND_POOL_CREATE_TRANSIENT_BIT or VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT
         )
 
