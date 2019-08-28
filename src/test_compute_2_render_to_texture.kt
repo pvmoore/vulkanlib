@@ -191,10 +191,10 @@ private class RenderToTextureExample : VulkanClient(
             .camera(camera)
 
         this.computeCP = device.createCommandPool(
-            vk.queues.getFamily(Queues.COMPUTE).index
+            vk.queues.getFamily(Queues.COMPUTE)
         )
         this.transferCP = device.createCommandPool(
-            vk.queues.getFamily(Queues.TRANSFER).index,
+            vk.queues.getFamily(Queues.TRANSFER),
             VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT
         )
 

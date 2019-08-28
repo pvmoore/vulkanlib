@@ -271,7 +271,7 @@ class GraphicsComponent(val client: VulkanClient) {
     }
     private fun createCommandPool() {
         commandPool = device.createCommandPool(
-            vk.queues.getFamily(Queues.GRAPHICS).index,
+            vk.queues.getFamily(Queues.GRAPHICS),
             VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT or VK_COMMAND_POOL_CREATE_TRANSIENT_BIT
         )
         log.info("Created graphics command pool using queue family ${vk.queues.getFamily(Queues.GRAPHICS)}")

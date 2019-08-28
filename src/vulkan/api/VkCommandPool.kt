@@ -8,6 +8,7 @@ import org.lwjgl.vulkan.VkCommandBuffer
 import org.lwjgl.vulkan.VkCommandBufferAllocateInfo
 import org.lwjgl.vulkan.VkCommandPoolCreateInfo
 import org.lwjgl.vulkan.VkDevice
+import vulkan.misc.QueueFamily
 import vulkan.misc.check
 import vulkan.misc.toList
 
@@ -62,11 +63,11 @@ class VkCommandPool(private val device:VkDevice, val handle:Long, val flags:Int)
  * @param flags VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT
  *              VK_COMMAND_POOL_CREATE_TRANSIENT_BIT
  */
-fun VkDevice.createCommandPool(family:Int, flags:Int = 0):VkCommandPool {
+fun VkDevice.createCommandPool(family: QueueFamily, flags:Int = 0) : VkCommandPool {
 
     val info = VkCommandPoolCreateInfo.calloc()
         .sType(VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO)
-        .queueFamilyIndex(family)
+        .queueFamilyIndex(family.index)
         .flags(flags)
 
     val pPool = memAllocLong(1)

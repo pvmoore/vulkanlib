@@ -24,7 +24,7 @@ class StagingTransfer(vk: VulkanApplication,
                       private val stagingBuffer: VkBuffer)
 {
     private val queue       = vk.queues.get(Queues.TRANSFER)
-    private val commandPool = vk.device.createCommandPool(vk.queues.getFamily(Queues.TRANSFER).index,
+    private val commandPool = vk.device.createCommandPool(vk.queues.getFamily(Queues.TRANSFER),
                                                           VK_COMMAND_POOL_CREATE_TRANSIENT_BIT)
     fun destroy() {
         commandPool.destroy()
