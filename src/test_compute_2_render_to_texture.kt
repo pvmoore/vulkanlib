@@ -1,4 +1,5 @@
 
+import org.joml.Matrix4f
 import org.joml.Vector2i
 import org.lwjgl.glfw.GLFW
 import org.lwjgl.vulkan.*
@@ -7,6 +8,8 @@ import vulkan.api.*
 import vulkan.api.buffer.BufferAlloc
 import vulkan.api.buffer.copyBuffer
 import vulkan.api.descriptor.bindDescriptorSets
+import vulkan.api.image.VkImage
+import vulkan.api.memory.allocImage
 import vulkan.api.pipeline.ComputePipeline
 import vulkan.api.pipeline.bindPipeline
 import vulkan.app.GraphicsComponent
@@ -15,9 +18,10 @@ import vulkan.app.VulkanApplication
 import vulkan.common.*
 import vulkan.d2.Camera2D
 import vulkan.d2.FPS
+import vulkan.d2.Quad
 import vulkan.misc.RGBA
-import vulkan.misc.VkFormat
 import vulkan.misc.megabytes
+import vulkan.misc.orThrow
 
 /**
  * Vulkan compute to texture example.
@@ -65,14 +69,15 @@ private class RenderToTextureExample : VulkanClient(
     height                  = 800,
     windowTitle             = "Vulkan Render To Texture Example",
     enableVsync             = false,
-    swapChainUsage          = VK_IMAGE_USAGE_STORAGE_BIT,
     prefNumSwapChainBuffers = 3)
 {
     private class FrameResource(
         val computeBuffer : VkCommandBuffer,
         val transferBuffer : VkCommandBuffer,
         val transferFinished : VkSemaphore,
-        val computeFinished : VkSemaphore
+        val computeFinished : VkSemaphore,
+        val targetImage:VkImage,
+        val quad:Quad = Quad()
     )
 
     private val memory              = VulkanMemory()
@@ -81,11 +86,11 @@ private class RenderToTextureExample : VulkanClient(
     private val clearColour         = ClearColour(RGBA(0.2f, 0f, 0f, 1f))
     private val fps                 = FPS()
     private val frameResources      = ArrayList<FrameResource>()
-    //private val quad                = Quad()
     private val computeDescriptors  = Descriptors()
     private val computePipeline     = ComputePipeline()
     private var deviceReadBuffer    = null as BufferAlloc?
     private var stagingWriteBuffer  = null as BufferAlloc?
+    private var sampler             = null as VkSampler?
     private var currentSecond       = 0
 
     private lateinit var computeCP:VkCommandPool
@@ -103,13 +108,15 @@ private class RenderToTextureExample : VulkanClient(
 
             clearColour.destroy()
 
-            //sampler?.destroy()
+            sampler?.destroy()
 
             fps.destroy()
 
             frameResources.forEach { fr ->
                 fr.transferFinished.destroy()
                 fr.computeFinished.destroy()
+                fr.targetImage.destroy()
+                fr.quad.destroy()
             }
 
             computeCP.destroy()
@@ -135,13 +142,6 @@ private class RenderToTextureExample : VulkanClient(
                     queues.select(Queues.COMPUTE, i, 1)
                 }
             }
-        }
-    }
-    override fun createRenderPass(device : VkDevice, surfaceFormat : VkFormat) : VkRenderPass {
-        /** Ensure we keep the previous contents which will be the compute output */
-        return device.createRenderPass(1, 1, surfaceFormat) { edits->
-            edits.pAttachments()!![0].loadOp(VK_ATTACHMENT_LOAD_OP_LOAD)
-            edits.pAttachments()!![0].initialLayout(VK_IMAGE_LAYOUT_GENERAL)
         }
     }
     override fun vulkanReady(vk : VulkanApplication) {
@@ -198,6 +198,12 @@ private class RenderToTextureExample : VulkanClient(
             VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT
         )
 
+        this.sampler = device.createSampler { info->
+            info.magFilter(VK_FILTER_NEAREST)
+            info.minFilter(VK_FILTER_NEAREST)
+            info.mipmapMode(VK_SAMPLER_MIPMAP_MODE_NEAREST)
+        }
+
         /**
          * Bindings:
          *    0     storage buffer
@@ -210,14 +216,6 @@ private class RenderToTextureExample : VulkanClient(
                 .storageImage(VK_SHADER_STAGE_COMPUTE_BIT)
                 .numSets(graphics.swapChain.numImages)
             .build()
-
-        graphics.swapChain.views.forEach { view->
-            this.computeDescriptors
-                .layout(0).createSet()
-                .add(deviceReadBuffer!!)
-                .add(view, VK_IMAGE_LAYOUT_GENERAL)
-                .write()
-        }
 
         this.computePipeline
             .init(context)
@@ -286,10 +284,11 @@ private class RenderToTextureExample : VulkanClient(
         res.cmd.let { b->
             b.beginOneTimeSubmit()
 
-            beforeRenderPass(frame, res)
+            fps.beforeRenderPass(frame, res)
+            computeFrame.quad.beforeRenderPass(frame, res)
 
-            // Renderpass initialLayout = GENERAL   (compute shader left it as GENERAL)
-            // The renderpass loadOp    = LOAD      (keep what the compute shader wrote)
+            // Renderpass initialLayout = UNDEFINED
+            // The renderpass loadOp    = CLEAR
             b.beginRenderPass(
                 context.renderPass!!,
                 res.frameBuffer,
@@ -298,7 +297,8 @@ private class RenderToTextureExample : VulkanClient(
                 true
             )
 
-            insideRenderPass(frame, res)
+            computeFrame.quad.insideRenderPass(frame, res)
+            fps.insideRenderPass(frame, res)
 
             // Renderpass finalLayout = PRESENT_SRC_KHR
             b.endRenderPass()
@@ -313,12 +313,6 @@ private class RenderToTextureExample : VulkanClient(
                 fence            = res.fence
             )
         }
-    }
-    private fun beforeRenderPass(frame: FrameInfo, res: PerFrameResource) {
-        fps.beforeRenderPass(frame, res)
-    }
-    private fun insideRenderPass(frame: FrameInfo, res: PerFrameResource) {
-        fps.insideRenderPass(frame, res)
     }
     private fun updateFrame(frame:FrameInfo) {
         val events = ArrayList(graphics.drainWindowEvents())
@@ -352,14 +346,35 @@ private class RenderToTextureExample : VulkanClient(
     }
     private fun createFrameResources() {
         for(r in 0 until graphics.swapChain.numImages) {
-            frameResources.add(
-                FrameResource(
-                    computeBuffer = computeCP.alloc(),
-                    transferBuffer = transferCP.alloc(),
-                    computeFinished = device.createSemaphore(),
-                    transferFinished = device.createSemaphore()
-                )
+
+            val fr = FrameResource(
+                computeBuffer = computeCP.alloc(),
+                transferBuffer = transferCP.alloc(),
+                computeFinished = device.createSemaphore(),
+                transferFinished = device.createSemaphore(),
+                targetImage = memory.get(VulkanMemory.DEVICE).allocImage { info->
+                    info.imageType(VK_IMAGE_TYPE_2D)
+                    info.format(VK_FORMAT_R8G8B8A8_UNORM)
+                    info.mipLevels(1)
+                    info.usage(VK_IMAGE_USAGE_STORAGE_BIT or VK_IMAGE_USAGE_SAMPLED_BIT)
+                    info.extent().set(camera.windowSize.x, camera.windowSize.y, 1)
+                }.orThrow()
             )
+
+            fr.quad
+                .init(context, fr.targetImage.getView(), sampler!!)
+                .camera(camera)
+                .model(Matrix4f()
+                            .translate(0f,0f,0f)
+                            .scale(camera.windowSize.x.toFloat(), camera.windowSize.y.toFloat(), 0f))
+
+            frameResources.add(fr)
+
+            computeDescriptors
+                .layout(0).createSet()
+                    .add(deviceReadBuffer!!)
+                    .add(fr.targetImage.getView(), VK_IMAGE_LAYOUT_GENERAL)
+                .write()
         }
     }
     private fun recordComputeFrames() {
@@ -379,7 +394,7 @@ private class RenderToTextureExample : VulkanClient(
             .srcAccessMask(VK_ACCESS_SHADER_WRITE_BIT)
             .dstAccessMask(VK_ACCESS_SHADER_READ_BIT)
             .oldLayout(VK_IMAGE_LAYOUT_GENERAL)
-            .newLayout(VK_IMAGE_LAYOUT_GENERAL)
+            .newLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
             .srcQueueFamilyIndex(vk.queues.getFamily(Queues.COMPUTE))
             .dstQueueFamilyIndex(vk.queues.getFamily(Queues.GRAPHICS))
 
@@ -392,8 +407,8 @@ private class RenderToTextureExample : VulkanClient(
 
             assert(extent.x%8==0 && extent.y%8==0)
 
-            preImageBarriers.image(res.image.handle)
-            postImageBarriers.image(res.image.handle)
+            preImageBarriers.image(r.targetImage.handle)
+            postImageBarriers.image(r.targetImage.handle)
 
             b.run {
                 begin()
