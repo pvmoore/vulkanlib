@@ -50,6 +50,9 @@ class Queues(private val client:VulkanClient) {
         selectedQueues.removeIf { it.name==name }
         selectedQueues.add(SelectedQueue(name, family, count))
     }
+    fun isSelected(name:String) : Boolean {
+        return selectedQueues.firstOrNull { it.name == name } != null
+    }
     fun getSelectedQueueFamilies() : List<Pair<Int,Int>> {
         return selectedQueues.map { it.family to it.count}
     }

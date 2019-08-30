@@ -1,0 +1,126 @@
+#version 450 core
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_ARB_shading_language_420pack : enable
+#extension GL_GOOGLE_include_directive : require
+
+#define GROUP_SIZE_X 32
+layout(local_size_x = GROUP_SIZE_X) in;
+
+// Descriptor set 0 bindings
+layout(set=0, binding=0, std430) writeonly buffer I0 {
+    float dataOut[];
+};
+
+// ============================================== printf start
+// Using descriptor set 1
+layout(set=1, binding=0, std430) writeonly buffer PRINTF_BUFFER {
+    float buf[];
+} printf;
+layout(set=1, binding=1, std430) buffer PRINTF_STATS {
+    uint buf[];
+} printf_stats;
+#include "_printf.inc"
+// ============================================== printf end
+
+uint g_index = gl_GlobalInvocationID.x;
+
+void main() {
+
+    if(printBarrier()) {
+        printc(32);
+        printc(38);
+        printu(0xff);
+        printi(41);
+        print(3.14f); printc(32);
+
+        print(uvec2(0xff, 0xaa));
+        print(uvec3(1,2,3));
+        print(uvec4(1,2,3,4));
+
+        print(ivec2(1,2));
+        print(ivec3(1,2,3));
+        print(ivec4(1,2,3,4));
+
+        print(vec2(1,2));
+        print(vec3(1,2,3));
+        print(vec4(1,2,3,4)); printc(32);
+
+        // These are all column-major
+
+        mat2x2 m2x2 = {
+            vec2(0,1),
+            vec2(2,3)
+        };
+        printSetSuffix(0); printc(48+2); printc(120); printc(48+2); printSetSuffix(10);
+        print(m2x2);
+
+        mat2x3 m2x3 = {
+            vec3(0,1,2),
+            vec3(3,4,5),
+        };
+        printSetSuffix(0); printc(48+2); printc(120); printc(48+3); printSetSuffix(10);
+        print(m2x3);
+
+        mat2x4 m2x4 = {
+            vec4(0,1,2,3),
+            vec4(4,5,6,7),
+        };
+        printSetSuffix(0); printc(48+2); printc(120); printc(48+4); printSetSuffix(10);
+        print(m2x4);
+
+
+
+        mat3x2 m3x2 = {
+            vec2(0,1),
+            vec2(2,3),
+            vec2(4,5)
+        };
+        printSetSuffix(0); printc(48+3); printc(120); printc(48+2); printSetSuffix(10);
+        print(m3x2);
+
+        mat3x3 m3x3 = {
+            vec3(0,1,2),
+            vec3(3,4,5),
+            vec3(6,7,8),
+        };
+        printSetSuffix(0); printc(48+3); printc(120); printc(48+3); printSetSuffix(10);
+        print(m3x3);
+
+        mat3x4 m3x4 = { // 3 cols, 4 rows
+            vec4(0,1, 2, 3),
+            vec4(4,5, 6, 7),
+            vec4(8,9,10,11)
+        };
+        printSetSuffix(0); printc(48+3); printc(120); printc(48+4); printSetSuffix(10);
+        print(m3x4);
+
+        mat4x2 m4x2 = {
+            vec2(0, 1),
+            vec2(2, 3),
+            vec2(4, 5),
+            vec2(6, 7)
+        };
+        printSetSuffix(0); printc(48+4); printc(120); printc(48+2); printSetSuffix(10);
+        print(m4x2);
+
+        mat4x3 m4x3 = {
+            vec3(0, 1, 2),
+            vec3(3, 4, 5),
+            vec3(6, 7, 8),
+            vec3(9,10,11)
+        };
+        printSetSuffix(0); printc(48+4); printc(120); printc(48+3); printSetSuffix(10);
+        print(m4x3);
+
+        mat4x4 m4x4 = {
+            vec4(0,1,2,3),
+            vec4(4,5,6,7),
+            vec4(8,9,10,11),
+            vec4(12,13,14,15),
+        };
+        printSetSuffix(0); printc(48+4); printc(120); printc(48+4); printSetSuffix(10);
+        print(m4x4);
+    }
+
+    dataOut[g_index] = 1.0f;
+}
