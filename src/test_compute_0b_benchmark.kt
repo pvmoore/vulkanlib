@@ -153,7 +153,7 @@ private class ComputeBenchmark : VulkanClient(headless = true) {
                     intArrayOf()
                 )
 
-                dispatch(1.megabytes(), 1, 1)
+                dispatch(1.megabytes() / 64, 1, 1)
 
                 end()
             }

@@ -141,7 +141,7 @@ private class ShaderPrintfComputeExample : VulkanClient(
             printf.bindDescriptorSet(this, pipeline, 1)
             printf.clearBuffers(this)
 
-            dispatch(1.megabytes(), 1, 1)
+            dispatch(1.megabytes() / 32, 1, 1)
 
             printf.fetchBuffers(this)
 

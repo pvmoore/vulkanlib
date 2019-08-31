@@ -208,7 +208,8 @@ private class ComputeSimpleBufferCopy : VulkanClient(
                 0,
                 pushConstants.floatBuffer
             )
-            dispatch(1.megabytes(), 1, 1)
+            dispatch(1.megabytes() / 64, 1, 1)
+
             copyBuffer(shaderWriteBuffer!!, stagingDownloadBuffer!!)
 
 //            pipelineBarrier(
