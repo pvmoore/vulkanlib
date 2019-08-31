@@ -1,10 +1,16 @@
 package vulkan.common
 
-import org.lwjgl.vulkan.VK10.VK_SHADER_STAGE_COMPUTE_BIT
+import org.lwjgl.vulkan.VK10.VK_PIPELINE_BIND_POINT_COMPUTE
+import org.lwjgl.vulkan.VK10.VK_PIPELINE_BIND_POINT_GRAPHICS
 import org.lwjgl.vulkan.VkCommandBuffer
 import vulkan.api.buffer.BufferAlloc
 import vulkan.api.buffer.copyBuffer
 import vulkan.api.buffer.updateBuffer
+import vulkan.api.descriptor.VkDescriptorSet
+import vulkan.api.descriptor.bindDescriptorSets
+import vulkan.api.pipeline.ComputePipeline
+import vulkan.api.pipeline.GraphicsPipeline
+import vulkan.misc.VkShaderStageFlags
 import vulkan.misc.orThrow
 import vulkan.misc.sizeof
 import java.nio.ByteBuffer
@@ -15,10 +21,11 @@ class ShaderPrintf {
         const val BUFFER_SIZE = 4 * 1024 * 1024
     }
     private lateinit var context:RenderContext
-    internal lateinit var stagingBuffer:BufferAlloc
-    internal lateinit var stagingStatsBuffer:BufferAlloc
-    internal lateinit var deviceBuffer:BufferAlloc
-    internal lateinit var deviceStatsBuffer:BufferAlloc
+    private lateinit var stagingBuffer:BufferAlloc
+    private lateinit var stagingStatsBuffer:BufferAlloc
+    private lateinit var deviceBuffer:BufferAlloc
+    private lateinit var deviceStatsBuffer:BufferAlloc
+    private var descriptorSet = null as VkDescriptorSet?
 
     internal val zeroBuffer = ByteBuffer.allocateDirect(4*Int.sizeof())
                                         .order(ByteOrder.nativeOrder())
@@ -43,18 +50,45 @@ class ShaderPrintf {
         deviceBuffer.free()
         deviceStatsBuffer.free()
     }
-    fun createLayout(d : Descriptors) {
+    fun createLayout(d : Descriptors, stage:VkShaderStageFlags) {
         d.createLayout()
-            .storageBuffer(VK_SHADER_STAGE_COMPUTE_BIT)
-            .storageBuffer(VK_SHADER_STAGE_COMPUTE_BIT)
+            .storageBuffer(stage)
+            .storageBuffer(stage)
             .numSets(1)
     }
+    fun clearBuffers(cmd:VkCommandBuffer) {
+        cmd.updateBuffer(deviceStatsBuffer.buffer, 0, zeroBuffer)
+    }
+    fun fetchBuffers(cmd:VkCommandBuffer) {
+        cmd.copyBuffer(deviceStatsBuffer, stagingStatsBuffer)
+        cmd.copyBuffer(deviceBuffer, stagingBuffer)
+    }
     fun createDescriptorSet(d:Descriptors, layoutNumber:Int = 1) {
-        d.layout(layoutNumber)
+        val s = d.layout(layoutNumber)
             .createSet()
                 .add(deviceBuffer)
                 .add(deviceStatsBuffer)
             .write()
+
+        this.descriptorSet = s.set
+    }
+    fun bindDescriptorSet(cmd:VkCommandBuffer, pipeline:GraphicsPipeline, setIndex:Int) {
+        cmd.bindDescriptorSets(
+            VK_PIPELINE_BIND_POINT_GRAPHICS,
+            pipeline.layout,
+            setIndex,
+            arrayOf(descriptorSet!!),
+            intArrayOf()
+        )
+    }
+    fun bindDescriptorSet(cmd:VkCommandBuffer, pipeline:ComputePipeline, setIndex:Int) {
+        cmd.bindDescriptorSets(
+            VK_PIPELINE_BIND_POINT_COMPUTE,
+            pipeline.layout,
+            setIndex,
+            arrayOf(descriptorSet!!),
+            intArrayOf()
+        )
     }
     fun getOutput() : String {
 
@@ -132,12 +166,4 @@ class ShaderPrintf {
 
         return result.toString()
     }
-}
-
-fun VkCommandBuffer.clear(printf : ShaderPrintf) {
-    this.updateBuffer(printf.deviceStatsBuffer.buffer, 0, printf.zeroBuffer)
-}
-fun VkCommandBuffer.fetchResults(printf : ShaderPrintf) {
-    this.copyBuffer(printf.deviceStatsBuffer, printf.stagingStatsBuffer)
-    this.copyBuffer(printf.deviceBuffer, printf.stagingBuffer)
 }

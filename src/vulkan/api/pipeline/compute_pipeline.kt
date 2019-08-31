@@ -16,6 +16,9 @@ import kotlin.test.assertNull
 class ComputePipeline() {
     private lateinit var context:RenderContext
 
+    private var shaderProps    = mapOf<String,String>()
+    private var shaderIncludes = listOf<String>()
+
     private var descriptorSetLayouts:Array<VkDescriptorSetLayout>? = null
     private var pushConstantRanges:VkPushConstantRange.Buffer? = null
     private var shaderFilename        = ""
@@ -40,6 +43,11 @@ class ComputePipeline() {
     }
     fun withDSLayouts(dsLayouts:Array<VkDescriptorSetLayout>):ComputePipeline {
         this.descriptorSetLayouts = dsLayouts.copyOf()
+        return this
+    }
+    fun withShaderProperties(props:Map<String,String>, includes:List<String>):ComputePipeline {
+        this.shaderProps    = props.toMap()
+        this.shaderIncludes = includes.toList()
         return this
     }
     fun withShader(filename:String, specConstants: SpecConstants? = null):ComputePipeline {
@@ -86,7 +94,7 @@ class ComputePipeline() {
         )
 
         /** Compute Shader */
-        val shader = context.vk.shaders.get(shaderFilename, emptyMap(), listOf())
+        val shader = context.vk.shaders.get(shaderFilename, shaderProps, shaderIncludes)
         val pName = memUTF8("main")
 
         val shaderStage = VkPipelineShaderStageCreateInfo.calloc()

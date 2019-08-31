@@ -105,7 +105,7 @@ private class ShaderPrintfComputeExample : VulkanClient(
             .numSets(1)
 
         /** Create printf layout 1 */
-        printf.createLayout(descriptors)
+        printf.createLayout(descriptors, VK_SHADER_STAGE_COMPUTE_BIT)
 
         /** Build the layouts */
         descriptors.build()
@@ -134,16 +134,16 @@ private class ShaderPrintfComputeExample : VulkanClient(
                 VK_PIPELINE_BIND_POINT_COMPUTE,
                 pipeline.layout,
                 0,
-                arrayOf(descriptors.layout(0).set(0),
-                        descriptors.layout(1).set(0)),
+                arrayOf(descriptors.layout(0).set(0)),
                 intArrayOf()
             )
 
-            clear(printf)
+            printf.bindDescriptorSet(this, pipeline, 1)
+            printf.clearBuffers(this)
 
             dispatch(1.megabytes(), 1, 1)
 
-            fetchResults(printf)
+            printf.fetchBuffers(this)
 
             end()
         }
