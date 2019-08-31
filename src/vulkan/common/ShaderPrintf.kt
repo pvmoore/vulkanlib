@@ -57,7 +57,7 @@ class ShaderPrintf {
             .numSets(1)
     }
     fun clearBuffers(cmd:VkCommandBuffer) {
-        cmd.updateBuffer(deviceStatsBuffer.buffer, 0, zeroBuffer)
+        cmd.updateBuffer(deviceStatsBuffer.buffer, deviceStatsBuffer.bufferOffset, zeroBuffer)
     }
     fun fetchBuffers(cmd:VkCommandBuffer) {
         cmd.copyBuffer(deviceStatsBuffer, stagingStatsBuffer)
@@ -115,21 +115,39 @@ class ShaderPrintf {
                         result.append(ptr.get(i++).toChar())
                     }
                     1 -> { // uint
-                        result.append(String.format("%08x", ptr.get(i++).toInt()))
-                        while(--components != 0) {
-                            result.append(", ").append(String.format("%08x", ptr.get(i++).toInt()))
+                        if(components > 1) {
+                            result.append("[")
+                            result.append(String.format("%08x", ptr.get(i++).toInt()))
+                            while(--components != 0) {
+                                result.append(", ").append(String.format("%08x", ptr.get(i++).toInt()))
+                            }
+                            result.append("]")
+                        } else {
+                            result.append(String.format("%08x", ptr.get(i++).toInt()))
                         }
                     }
                     2 -> { // int
-                        result.append(ptr.get(i++).toInt())
-                        while(--components != 0) {
-                            result.append(", ").append(ptr.get(i++).toInt())
+                        if(components > 1) {
+                            result.append("[")
+                            result.append(ptr.get(i++).toInt())
+                            while(--components != 0) {
+                                result.append(", ").append(ptr.get(i++).toInt())
+                            }
+                            result.append("]")
+                        } else {
+                            result.append(ptr.get(i++).toInt())
                         }
                     }
                     3 -> { // float
-                        result.append(ptr.get(i++))
-                        while(--components != 0) {
-                            result.append(", ").append(ptr.get(i++))
+                        if(components > 1) {
+                            result.append("[")
+                            result.append(ptr.get(i++))
+                            while(--components != 0) {
+                                result.append(", ").append(ptr.get(i++))
+                            }
+                            result.append("]")
+                        } else {
+                            result.append(ptr.get(i++))
                         }
                     }
                     6 -> { // matrix

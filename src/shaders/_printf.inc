@@ -236,7 +236,7 @@ void print(mat3x3 v) { // 3 cols, 3 rows (column-major)
 void printc(uint v) {
     _doprint(v, 0);
 }
-void printu(int v) {
+void printu(uint v) {
     _doprint(v, 1);
 }
 void printi(int v) {
