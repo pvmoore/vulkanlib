@@ -48,16 +48,17 @@ class Descriptors {
 
     private val layouts = ArrayList<Layout>()
 
-    fun layout(index:Int) = layouts[index]
+    fun layout(index:Int) : Layout = layouts[index]
+    fun allDSLayouts() : Array<VkDescriptorSetLayout> = layouts.map { l -> l.dsLayout }.toTypedArray()
 
     fun init(context : RenderContext) : Descriptors {
         this.context = context
         return this
     }
     fun destroy() {
-        layouts.forEach {
-            pool.freeSets(it.sets.map { it.set }.toTypedArray())
-            it.dsLayout.destroy()
+        layouts.forEach { l->
+            pool.freeSets(l.sets.map { s-> s.set }.toTypedArray())
+            l.dsLayout.destroy()
         }
         pool.destroy()
     }

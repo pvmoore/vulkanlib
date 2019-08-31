@@ -120,7 +120,7 @@ private class ShaderPrintfComputeExample : VulkanClient(
         printf.createDescriptorSet(descriptors, 1)
 
         val pipeline = ComputePipeline().init(context)
-            .withDSLayouts(arrayOf(descriptors.layout(0).dsLayout, descriptors.layout(1).dsLayout))
+            .withDSLayouts(descriptors.allDSLayouts())
             .withShader("TestPrintf.comp")
             .build()
 
@@ -139,11 +139,11 @@ private class ShaderPrintfComputeExample : VulkanClient(
                 intArrayOf()
             )
 
-            before(printf)
+            clear(printf)
 
             dispatch(1.megabytes(), 1, 1)
 
-            after(printf)
+            fetchResults(printf)
 
             end()
         }

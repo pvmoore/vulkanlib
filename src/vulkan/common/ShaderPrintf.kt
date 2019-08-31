@@ -134,10 +134,10 @@ class ShaderPrintf {
     }
 }
 
-fun VkCommandBuffer.before(printf : ShaderPrintf) {
+fun VkCommandBuffer.clear(printf : ShaderPrintf) {
     this.updateBuffer(printf.deviceStatsBuffer.buffer, 0, printf.zeroBuffer)
 }
-fun VkCommandBuffer.after(printf : ShaderPrintf) {
+fun VkCommandBuffer.fetchResults(printf : ShaderPrintf) {
     this.copyBuffer(printf.deviceStatsBuffer, printf.stagingStatsBuffer)
     this.copyBuffer(printf.deviceBuffer, printf.stagingBuffer)
 }
