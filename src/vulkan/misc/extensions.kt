@@ -5,6 +5,8 @@ import java.nio.file.Path
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
+fun Boolean.toInt() = if(this) 1 else 0
+
 fun Int.megabytes() = this* MEGABYTE
 
 fun Int.clamp(min:Int, max:Int):Int {

@@ -5,17 +5,16 @@ import org.lwjgl.system.MemoryUtil.memFree
 import org.lwjgl.vulkan.VK10.*
 import org.lwjgl.vulkan.VkDevice
 import org.lwjgl.vulkan.VkQueryPoolCreateInfo
-import vulkan.misc.VkQueryPipelineStatisticFlags
-import vulkan.misc.VkQueryType
-import vulkan.misc.check
-import vulkan.misc.forEach
+import vulkan.misc.*
 
 class VkQueryPool(private val device: VkDevice, val handle:Long) {
 
-    fun getResults(first:Int, count:Int, wait:Boolean) : List<Long> {
+    fun getResults(first:Int, count:Int, waitFor:Boolean, includeAvailability : Boolean) : List<Long> {
+
         val results = ArrayList<Long>()
-        val buf     = MemoryUtil.memAllocLong(count)
-        val flags   = VK_QUERY_RESULT_64_BIT or if(wait) VK_QUERY_RESULT_WAIT_BIT else 0
+        val buf     = MemoryUtil.memAllocLong(count + includeAvailability.toInt() )
+        val flags   = VK_QUERY_RESULT_64_BIT or (if(waitFor) VK_QUERY_RESULT_WAIT_BIT else 0) or
+                        (if(includeAvailability) VK_QUERY_RESULT_WITH_AVAILABILITY_BIT else 0)
 
         when(val res = vkGetQueryPoolResults(device, handle, first, count, buf, 8L, flags)) {
             VK_SUCCESS   -> buf.forEach { results.add(it) }

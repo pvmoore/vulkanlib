@@ -216,9 +216,9 @@ private class ComputeBenchmark : VulkanClient(headless = true) {
             arrayOf()       // signal semaphores
         )
 
-        queryPool!!.getResults(0, 2, true).run {
+        queryPool!!.getResults(0, 2, waitFor = false, includeAvailability = true).run {
             if(this.isNotEmpty()) {
-                println("Query timestamp results = ${this[1]-this[0]}")
+                println("Query timestamp results = ${this[1]-this[0]} available=${this[2]}")
             }
         }
     }
