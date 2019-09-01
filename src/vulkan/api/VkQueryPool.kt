@@ -8,8 +8,26 @@ import org.lwjgl.vulkan.VkQueryPoolCreateInfo
 import vulkan.misc.VkQueryPipelineStatisticFlags
 import vulkan.misc.VkQueryType
 import vulkan.misc.check
+import vulkan.misc.forEach
 
 class VkQueryPool(private val device: VkDevice, val handle:Long) {
+
+    fun getResults(first:Int, count:Int, wait:Boolean) : List<Long> {
+        val results = ArrayList<Long>()
+        val buf     = MemoryUtil.memAllocLong(count)
+        val flags   = VK_QUERY_RESULT_64_BIT or if(wait) VK_QUERY_RESULT_WAIT_BIT else 0
+
+        when(val res = vkGetQueryPoolResults(device, handle, first, count, buf, 8L, flags)) {
+            VK_SUCCESS   -> buf.forEach { results.add(it) }
+            VK_NOT_READY -> {
+                /** This is not an error - just return no results */
+            }
+            else -> res.check()
+        }
+
+        memFree(buf)
+        return results
+    }
 
     fun destroy() {
         vkDestroyQueryPool(device, handle, null)

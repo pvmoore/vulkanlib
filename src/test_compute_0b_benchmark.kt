@@ -1,6 +1,5 @@
 
-import org.lwjgl.vulkan.VK10.VK_PIPELINE_BIND_POINT_COMPUTE
-import org.lwjgl.vulkan.VK10.VK_SHADER_STAGE_COMPUTE_BIT
+import org.lwjgl.vulkan.VK10.*
 import org.lwjgl.vulkan.VkCommandBuffer
 import org.lwjgl.vulkan.VkDevice
 import org.lwjgl.vulkan.VkPhysicalDeviceFeatures
@@ -63,12 +62,14 @@ private class ComputeBenchmark : VulkanClient(headless = true) {
     private val pipeline    = ComputePipeline()
     private var computeCP   = null as VkCommandPool?
     private var computeCB   = null as VkCommandBuffer?
+    private var queryPool   = null as VkQueryPool?
 
     override fun destroy() {
         device?.let {
             device.waitForIdle()
 
-            computeCP?.let { it.destroy() }
+            computeCP?.destroy()
+            queryPool?.destroy()
 
             descriptors.destroy()
             pipeline.destroy()
@@ -138,6 +139,8 @@ private class ComputeBenchmark : VulkanClient(headless = true) {
             .build()
         println("pipeline = $pipeline")
 
+        this.queryPool = device.createQueryPool(VK_QUERY_TYPE_TIMESTAMP, 2)
+
         computeCP = device.createCommandPool(vk.queues.getFamily(Queues.COMPUTE)).apply {
             computeCB = this.alloc()
 
@@ -153,7 +156,12 @@ private class ComputeBenchmark : VulkanClient(headless = true) {
                     intArrayOf()
                 )
 
+                resetQueryPool(queryPool!!, 0, 2)
+                writeTimestamp(VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, queryPool!!, 0)
+
                 dispatch(1.megabytes() / 64, 1, 1)
+
+                writeTimestamp(VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, queryPool!!, 1)
 
                 end()
             }
@@ -207,5 +215,11 @@ private class ComputeBenchmark : VulkanClient(headless = true) {
             intArrayOf(),   // wait stages
             arrayOf()       // signal semaphores
         )
+
+        queryPool!!.getResults(0, 2, true).run {
+            if(this.isNotEmpty()) {
+                println("Query timestamp results = ${this[1]-this[0]}")
+            }
+        }
     }
 }
