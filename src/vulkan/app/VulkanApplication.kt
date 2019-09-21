@@ -22,10 +22,12 @@ class VulkanApplication(val client: VulkanClient) {
     private val features                                = VkPhysicalDeviceFeatures.calloc()
 
     lateinit var instance:VkInstance
-    lateinit var physicalDevice:VkPhysicalDevice
     lateinit var device:VkDevice
+    lateinit var physicalDevice:VkPhysicalDevice
     lateinit var physicalDeviceProperties:VkPhysicalDeviceProperties
     lateinit var physicalDeviceMemoryProperties:VkPhysicalDeviceMemoryProperties
+
+    fun physicalDeviceLimits() = physicalDeviceProperties.limits()
 
     val queues   = Queues(client)
     val shaders  = Shaders
@@ -64,9 +66,8 @@ class VulkanApplication(val client: VulkanClient) {
         log.info("LWJGL ......... " + Version.getVersion())
         log.info("GLFW .......... " + glfwGetVersionString())
 
-        if(!glfwInit()) {
-            throw IllegalStateException("Unable to initialize GLFW")
-        }
+        check(glfwInit()) { "Unable to initialize GLFW" }
+
         if(!glfwVulkanSupported()) {
             throw AssertionError("GLFW failed to find the Vulkan loader")
         }

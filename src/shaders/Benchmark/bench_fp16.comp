@@ -1,0 +1,105 @@
+#version 450 core
+#extension GL_ARB_separate_shader_objects   : enable
+#extension GL_ARB_shading_language_420pack  : enable
+#extension GL_GOOGLE_include_directive      : require
+#extension GL_AMD_gpu_shader_half_float     : enable
+
+#define GROUP_SIZE_X 64
+layout(local_size_x = GROUP_SIZE_X) in;
+
+
+layout(set=0, binding=0, std430) readonly buffer I0 {
+    uint dataIn[];
+};
+layout(set=0, binding=1, std430) writeonly buffer O0 {
+    uint dataOut[];
+};
+
+
+/*
+https://www.khronos.org/registry/vulkan/specs/1.1-extensions/man/html/VkPhysicalDeviceShaderFloat16Int8FeaturesKHR.html
+
+VK_KHR_shader_float16_int8
+VK_KHR_get_physical_device_properties2
+
+*/
+
+#define f16 float16_t
+
+ivec2 g_pos  = ivec2(gl_GlobalInvocationID.xy);
+ivec2 l_pos  = ivec2(gl_LocalInvocationID.xy);
+uint g_index = gl_GlobalInvocationID.x; // + gl_GlobalInvocationID.y*SIZE.x;
+uint l_index = gl_LocalInvocationIndex;
+
+float calculateFP32(float i) {
+    float a = i / 3.14f;
+    vec2 b  = vec2(a, a*7);
+    vec3 c  = vec3(a, a*7, a*13);
+    vec4 d  = vec4(a, a*7, a*13, a*17);
+    mat4x4 e = {
+        d, d/0.99f, d/0.98f, d/0.97f
+    };
+    mat4x4 f = e / 1.1f;
+
+    //f *= 7.7f;
+
+    //a += dot(f[0], f[1]);
+    //a += dot(f[2], f[3]);
+
+    a += dot(b, b);
+    a  = sqrt(a);
+
+    d += 23.0f;
+
+    a += dot(c,c);
+
+    a -= dot(d,d);
+
+    return a;
+}
+float calculateFP16(float i) {
+    f16 a     = f16(i) / f16(3.14);
+    f16vec2 b = f16vec2(a, a*f16(7));
+    f16vec3 c = f16vec3(a, a*f16(7), a*f16(13));
+    f16vec4 d = f16vec4(a, a*f16(7), a*f16(13), a*f16(17));
+    f16mat4x4 e = {
+        d, d/f16(0.99), d/f16(0.98), d/f16(0.97)
+    };
+    f16mat4x4 f = e / f16(1.1);
+
+    //f *= f16(7.7);
+
+    //a += dot(f[0], f[1]);
+    //a += dot(f[2], f[3]);
+
+    a += dot(b, b);
+    a  = sqrt(a);
+
+    d += f16(23.0f);
+
+    a += dot(c,c);
+
+    a -= dot(d,d);
+
+    return float(a);
+}
+
+void main() {
+
+    // -1633882112, -1888145792, -2147483648, -2147483648, -2147483648,
+    // -1635059968, -1889340032, -2147483648, -2147483648, -2147483648,
+
+    // 3,222,699
+    // 2,930,219  (approx 10% faster)
+
+    float result = 0.0f;
+
+    for(int i=0; i<300; i++) {
+        //result += calculateFP32(dataIn[g_index]+(i%10));
+
+        result += calculateFP16(dataIn[g_index]+(i%10));
+    }
+
+    dataOut[g_index] = int(result*1000.0f);
+}
+

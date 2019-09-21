@@ -41,7 +41,6 @@ fun createLogicalDevice(physicalDevice:VkPhysicalDevice,
         extensions.forEach { enabledExtensions.put(stack.UTF8(it)) }
         enabledExtensions.flip()
 
-
         val deviceCreateInfo = VkDeviceCreateInfo.callocStack()
             .sType(VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO)
             .pNext(NULL)

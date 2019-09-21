@@ -4,6 +4,8 @@ import org.lwjgl.system.MemoryStack
 import org.lwjgl.system.MemoryUtil
 import org.lwjgl.system.MemoryUtil.memFree
 import org.lwjgl.vulkan.*
+import org.lwjgl.vulkan.KHRGetPhysicalDeviceProperties2.vkGetPhysicalDeviceFeatures2KHR
+import org.lwjgl.vulkan.KHRShaderFloat16Int8.VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT16_INT8_FEATURES_KHR
 import org.lwjgl.vulkan.KHRSurface.*
 import org.lwjgl.vulkan.VK10.*
 import vulkan.common.log
@@ -121,9 +123,26 @@ fun VkPhysicalDevice.getProperties(): VkPhysicalDeviceProperties {
     return properties
 }
 /** @return object that needs to be freed by the caller */
-fun VkPhysicalDevice.getFeatures() : VkPhysicalDeviceFeatures2 {
+fun VkPhysicalDevice.getFeatures() : VkPhysicalDeviceFeatures {
+    val features = VkPhysicalDeviceFeatures.calloc()
+    VK11.vkGetPhysicalDeviceFeatures(this, features)
+    return features
+}
+/** @return object that needs to be freed by the caller */
+fun VkPhysicalDevice.getFeatures2() : VkPhysicalDeviceFeatures2 {
     val features = VkPhysicalDeviceFeatures2.calloc()
     VK11.vkGetPhysicalDeviceFeatures2(this, features)
+    return features
+}
+/** @return object that needs to be freed by the caller */
+fun VkPhysicalDevice.getFeatures2KHR() : VkPhysicalDeviceFeatures2KHR {
+
+    val features = VkPhysicalDeviceFeatures2KHR.calloc()
+    val feat     = VkPhysicalDeviceFloat16Int8FeaturesKHR.calloc()
+        .sType(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FLOAT16_INT8_FEATURES_KHR)
+    features.pNext(feat.address())
+
+    vkGetPhysicalDeviceFeatures2KHR(this, features)
     return features
 }
 /** @return Buffer that needs to be freed by caller */
