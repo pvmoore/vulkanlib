@@ -167,6 +167,7 @@ fun VkCommandBuffer.resolveImage(src: VkImage, srcLayout:VkImageLayout, dest: Vk
     vkCmdResolveImage(this, src.handle, srcLayout, dest.handle, destLayout, regions)
     return this
 }
+
 fun VkCommandBuffer.setEvent(event:VkEvent, stageMask:VkPipelineStageFlags):VkCommandBuffer {
     vkCmdSetEvent(this, event.handle, stageMask)
     return this

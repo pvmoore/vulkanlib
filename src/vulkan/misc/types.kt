@@ -4,7 +4,7 @@ import org.joml.Vector3f
 import org.joml.Vector4f
 import java.nio.ByteBuffer
 
-inline class QueueFamily(val index:Int)
+class QueueFamily(val index:Int)
 
 typealias VkAccessMaskFlags             = Int
 typealias VkBufferUsageFlags            = Int

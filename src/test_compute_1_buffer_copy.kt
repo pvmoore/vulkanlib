@@ -63,13 +63,13 @@ fun main() {
 }
 
 //=========================================================================================
-private class ComputeSimpleBufferCopy : VulkanClient(
+private class ComputeSimpleBufferCopy : VulkanClient(Parameters(
     windowed                = true,
     width                   = 800,
     height                  = 800,
     windowTitle             = "Vulkan Compute Buffer Copy Test",
     enableVsync             = false,
-    prefNumSwapChainBuffers = 2)
+    prefNumSwapChainBuffers = 2))
 {
     private data class UBO(val value1:Float,
                            val value2:Float,

@@ -4,7 +4,7 @@ import org.lwjgl.glfw.GLFWVulkan.glfwGetPhysicalDevicePresentationSupport
 import org.lwjgl.system.MemoryUtil
 import org.lwjgl.vulkan.*
 import org.lwjgl.vulkan.VK10.*
-import vulkan.api.getQueues
+import vulkan.api.*
 import vulkan.misc.QueueFamily
 import vulkan.misc.VkQueueFlags
 import vulkan.misc.dump
@@ -94,6 +94,39 @@ class Queues(private val client:VulkanClient) {
             }
         }
         return list
+    }
+
+    fun submit(queue:String, qIndex:Int,
+               cmdBuffers: Array<VkCommandBuffer>, fence: VkFence? = null)
+    {
+        get(queue,qIndex).submit(cmdBuffers, arrayOf(), intArrayOf(), arrayOf(), fence)
+    }
+
+    fun submit(queue:String, qIndex:Int,
+               cmdBuffers:Array<VkCommandBuffer>,
+               waitSemaphores:Array<VkSemaphore>?,
+               waitStages:IntArray?,
+               signalSemaphores:Array<VkSemaphore>?,
+               fence:VkFence? = null)
+    {
+        get(queue,qIndex).submit(cmdBuffers, waitSemaphores, waitStages, signalSemaphores, fence)
+    }
+
+    fun submitAndWait(queue:String, qIndex:Int,
+                      cmdBuffers:Array<VkCommandBuffer>,
+                      waitSemaphores:Array<VkSemaphore>?,
+                      waitStages:IntArray?,
+                      signalSemaphores:Array<VkSemaphore>?)
+    {
+        get(queue,qIndex).submitAndWait(cmdBuffers, waitSemaphores, waitStages, signalSemaphores)
+    }
+    fun submitAndWait(queue:String, qIndex:Int, cmdBuffer:VkCommandBuffer) {
+        get(queue,qIndex).submitAndWait(cmdBuffer)
+    }
+    fun bindSparse(queue:String, qIndex:Int,
+                   fence:VkFence, sparseInfos: VkBindSparseInfo.Buffer)
+    {
+        get(queue,qIndex).bindSparse(fence, sparseInfos)
     }
 
     override fun toString() : String {

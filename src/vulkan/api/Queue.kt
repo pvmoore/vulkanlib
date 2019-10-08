@@ -38,12 +38,11 @@ fun VkQueue.submit(cmdBuffers: Array<VkCommandBuffer>, fence: VkFence? = null) {
 }
 
 fun VkQueue.submit(cmdBuffers:Array<VkCommandBuffer>,
-                   waitSemaphores:Array<VkSemaphore>,
-                   waitStages:IntArray,
-                   signalSemaphores:Array<VkSemaphore>,
+                   waitSemaphores:Array<VkSemaphore>?,
+                   waitStages:IntArray?,
+                   signalSemaphores:Array<VkSemaphore>?,
                    fence:VkFence? = null)
 {
-    assert(waitStages.size==waitSemaphores.size)
     assert(cmdBuffers.isNotEmpty())
 
     MemoryStack.stackPush().use { stack ->
@@ -54,28 +53,39 @@ fun VkQueue.submit(cmdBuffers:Array<VkCommandBuffer>,
             .sType(VK_STRUCTURE_TYPE_SUBMIT_INFO)
             .pCommandBuffers(pCmdBuffers)
 
-        if(waitSemaphores.isNotEmpty()) {
-            val pWaitSemaphores = stack.mallocLong(waitSemaphores.size).put(waitSemaphores).flip()
-            val pWaitStages = memAllocInt(waitStages.size).put(waitStages).flip()
+        waitSemaphores?.let { semaphores->
+            if(semaphores.isNotEmpty()) {
+                assert(waitStages?.size==semaphores.size)
 
-            info.waitSemaphoreCount(waitSemaphores.size)
-                .pWaitSemaphores(pWaitSemaphores)
-                .pWaitDstStageMask(pWaitStages)
-        }
-        if(signalSemaphores.isNotEmpty()) {
-            val pSignalSemaphores = stack.mallocLong(signalSemaphores.size).put(signalSemaphores).flip()
+                val pWaitSemaphores = stack.mallocLong(semaphores.size).put(semaphores).flip()
+                val pWaitStages     = memAllocInt(waitStages!!.size).put(waitStages).flip()
 
-            info.pSignalSemaphores(pSignalSemaphores)
+                info.waitSemaphoreCount(waitSemaphores.size)
+                    .pWaitSemaphores(pWaitSemaphores)
+                    .pWaitDstStageMask(pWaitStages)
+            }
         }
+        signalSemaphores?.let { signals ->
+            if(signals.isNotEmpty()) {
+                val pSignalSemaphores = stack.mallocLong(signals.size).put(signals).flip()
+
+                info.pSignalSemaphores(pSignalSemaphores)
+            }
+        }
+//        if(signalSemaphores.isNotEmpty()) {
+//            val pSignalSemaphores = stack.mallocLong(signalSemaphores.size).put(signalSemaphores).flip()
+//
+//            info.pSignalSemaphores(pSignalSemaphores)
+//        }
 
         vkQueueSubmit(this, info, fence?.handle ?: VK_NULL_HANDLE).check()
     }
 }
 
 fun VkQueue.submitAndWait(cmdBuffers:Array<VkCommandBuffer>,
-                          waitSemaphores:Array<VkSemaphore>,
-                          waitStages:IntArray,
-                          signalSemaphores:Array<VkSemaphore>)
+                          waitSemaphores:Array<VkSemaphore>?,
+                          waitStages:IntArray?,
+                          signalSemaphores:Array<VkSemaphore>?)
 {
     val fence = this.device.createFence()
     this.submit(cmdBuffers, waitSemaphores, waitStages, signalSemaphores, fence)

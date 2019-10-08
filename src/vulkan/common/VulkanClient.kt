@@ -9,17 +9,8 @@ import vulkan.app.VulkanApplication
 import vulkan.misc.QueueFamily
 import vulkan.misc.VkFormat
 
-abstract class VulkanClient(
-    val headless:Boolean             = false,
-    val windowed:Boolean             = true,
-    val width:Int                    = 600,
-    val height:Int                   = 600,
-    val windowTitle:String           = "Vulkan CLient",
-    val enableVsync:Boolean          = false,
-    val swapChainUsage:Int           = 0,
-    val prefNumSwapChainBuffers:Int  = 2,
-    val depthStencilFormat:VkFormat  = 0)   // 0 = no depth/stencil will be created
-{
+abstract class VulkanClient(val params: Parameters) {
+
     abstract fun destroy()
     /**
      * Set features required by your application.
@@ -47,7 +38,7 @@ abstract class VulkanClient(
         props.forEachIndexed { i, family->
             if(family.queueCount()>0) {
 
-                if(!headless && queues.isGraphics(family.queueFlags()) and queues.canPresent(QueueFamily(i))) {
+                if(!params.headless && queues.isGraphics(family.queueFlags()) and queues.canPresent(QueueFamily(i))) {
                     if(!queues.hasQueue(Queues.GRAPHICS) || !queues.isCompute(family.queueFlags())) {
                         queues.select(Queues.GRAPHICS, i, 1)
                     }
@@ -69,5 +60,28 @@ abstract class VulkanClient(
      */
     open fun render(frame: FrameInfo, res: PerFrameResource) {
 
+    }
+
+    class Parameters(
+        var headless : Boolean = false,
+        var windowed : Boolean = true,
+        var width : Int = 600,
+        var height : Int = 600,
+        var windowTitle : String = "Vulkan Application",
+        var enableVsync : Boolean = false,
+        var swapChainUsage : Int = 0,
+        var prefNumSwapChainBuffers : Int = 2,
+        var depthStencilFormat : VkFormat = 0  // 0 = no depth/stencil will be created
+    )
+    {
+        fun headless(flag:Boolean)    = apply { this.headless = flag }
+        fun windowed(flag:Boolean)    = apply { this.windowed = flag }
+        fun width(width:Int)          = apply { this.width = width }
+        fun height(height:Int)        = apply { this.height = height }
+        fun windowTitle(title:String) = apply { this.windowTitle = title }
+        fun enableVsync(flag:Boolean) = apply { this.enableVsync = flag }
+        fun swapChainUsage(usage:Int) = apply { this.swapChainUsage = usage }
+        fun prefNumSwapChainBuffers(num:Int) = apply { this.prefNumSwapChainBuffers = num }
+        fun depthStencilFormat(format:VkFormat) = apply { this.depthStencilFormat = format }
     }
 }

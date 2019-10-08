@@ -115,7 +115,7 @@ class SwapChain(private val vk: VulkanApplication,
         // FIFO is always available
         val mode:Int
 
-        mode = if(vk.client.enableVsync) {
+        mode = if(vk.client.params.enableVsync) {
             when {
                 presentModes.contains(VK_PRESENT_MODE_FIFO_RELAXED_KHR) -> VK_PRESENT_MODE_FIFO_RELAXED_KHR
                 else -> VK_PRESENT_MODE_FIFO_KHR
@@ -254,7 +254,7 @@ class SwapChain(private val vk: VulkanApplication,
                 w = height
             }
 
-            numImages = vk.client.prefNumSwapChainBuffers.clamp(caps.minImageCount(), caps.maxImageCount())
+            numImages = vk.client.params.prefNumSwapChainBuffers.clamp(caps.minImageCount(), caps.maxImageCount())
             log.info("\tCreating $numImages images")
 
             val preTransform = when {
@@ -270,7 +270,7 @@ class SwapChain(private val vk: VulkanApplication,
                 .imageFormat(colorFormat)
                 .imageColorSpace(colorSpace)
                 .imageArrayLayers(1)
-                .imageUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT or vk.client.swapChainUsage)
+                .imageUsage(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT or vk.client.params.swapChainUsage)
                 .imageSharingMode(VK_SHARING_MODE_EXCLUSIVE)
                 .pQueueFamilyIndices(null)
                 .preTransform(preTransform)

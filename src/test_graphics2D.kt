@@ -47,13 +47,13 @@ fun main(args:Array<String>) {
 
     log.info("Finished")
 }
-private class Graphics2DApplication :VulkanClient(
+private class Graphics2DApplication : VulkanClient(Parameters(
     windowed                = true,
     width                   = 1400,
     height                  = 800,
     windowTitle             = "Vulkan 2D Graphics Test",
     enableVsync             = false,
-    prefNumSwapChainBuffers = 2)
+    prefNumSwapChainBuffers = 2))
 {
     private lateinit var vk: VulkanApplication
     private lateinit var device: VkDevice

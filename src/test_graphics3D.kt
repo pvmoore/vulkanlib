@@ -50,14 +50,14 @@ fun main(args:Array<String>) {
 
     log.info("Finished")
 }
-private class Graphics3DApplication : VulkanClient(
+private class Graphics3DApplication : VulkanClient(Parameters(
     windowed                = true,
     width                   = 800,
     height                  = 800,
     windowTitle             = "Vulkan 3D Graphics Test",
     enableVsync             = false,
     prefNumSwapChainBuffers = 3,
-    depthStencilFormat      = VK_FORMAT_D32_SFLOAT) // VK_FORMAT_D32_SFLOAT_S8_UINT / VK_FORMAT_D32_SFLOAT
+    depthStencilFormat      = VK_FORMAT_D32_SFLOAT)) // VK_FORMAT_D32_SFLOAT_S8_UINT / VK_FORMAT_D32_SFLOAT
 {
     private lateinit var vk : VulkanApplication
     private lateinit var device : VkDevice

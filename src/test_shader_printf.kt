@@ -48,8 +48,8 @@ fun main(args:Array<String>) {
     println("Finished")
 }
 
-private class ShaderPrintfComputeExample : VulkanClient(
-    headless = true)
+private class ShaderPrintfComputeExample : VulkanClient(Parameters(
+    headless = true))
 {
     private lateinit var vk: VulkanApplication
     private lateinit var device: VkDevice
@@ -96,7 +96,7 @@ private class ShaderPrintfComputeExample : VulkanClient(
 
         val printf = ShaderPrintf().init(context)
 
-        val commandPool = device.createCommandPool(vk.queues.getFamily(Queues.COMPUTE))
+        val commandPool = device.createCommandPool(vk.queues.getFamily(Queues.COMPUTE), 0)
         val descriptors = Descriptors().init(context)
 
         /** Create layout 0 */

@@ -45,13 +45,13 @@ fun main(args:Array<String>) {
         destroy()
     }
 }
-private class TestCreateNoiseTexture : VulkanClient(
+private class TestCreateNoiseTexture : VulkanClient(Parameters(
     windowed                = true,
     width                   = 1000,
     height                  = 800,
     windowTitle             = "Create and display noise texture",
     enableVsync             = false,
-    prefNumSwapChainBuffers = 2)
+    prefNumSwapChainBuffers = 2))
 {
     private lateinit var vk     : VulkanApplication
     private lateinit var device : VkDevice

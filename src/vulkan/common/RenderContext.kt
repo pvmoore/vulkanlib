@@ -4,9 +4,11 @@ import org.lwjgl.vulkan.VkDevice
 import vulkan.api.VkRenderPass
 import vulkan.app.VulkanApplication
 
-open class RenderContext(
+class RenderContext(
     val vk: VulkanApplication,
     val device: VkDevice,
     val renderPass: VkRenderPass?,
-    val buffers: VulkanBuffers
-)
+    val buffers: VulkanBuffers)
+{
+    val graphics = vk.graphics
+}

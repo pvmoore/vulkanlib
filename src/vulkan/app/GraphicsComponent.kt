@@ -96,7 +96,7 @@ class GraphicsComponent(val client: VulkanClient) {
         private set(value) { field = value }
 
     // Setter properties
-    var windowTitle:String = client.windowTitle
+    var windowTitle:String = client.params.windowTitle
         set(value) { field = value; glfwSetWindowTitle(window, field) }
 
     fun showWindow(flag:Boolean=true) {
@@ -210,15 +210,15 @@ class GraphicsComponent(val client: VulkanClient) {
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API)
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE)
 
-        var width       = client.width
-        var height      = client.height
+        var width       = client.params.width
+        var height      = client.params.height
         val resizable   = false
         val decorated   = true
         val autoIconify = false
         var monitor = glfwGetPrimaryMonitor()
         val vidmode = glfwGetVideoMode(monitor)!!
 
-        if(client.windowed) {
+        if(client.params.windowed) {
             monitor = 0
             glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE)
             glfwWindowHint(GLFW_RESIZABLE, if(resizable) GLFW_TRUE else GLFW_FALSE)
@@ -267,7 +267,7 @@ class GraphicsComponent(val client: VulkanClient) {
     }
     private fun createSwapChain() {
         val w = windowSize
-        swapChain = SwapChain(vk, w.x, w.y, surface, client.depthStencilFormat, surfaceFormat, renderPass)
+        swapChain = SwapChain(vk, w.x, w.y, surface, client.params.depthStencilFormat, surfaceFormat, renderPass)
     }
     private fun createCommandPool() {
         commandPool = device.createCommandPool(

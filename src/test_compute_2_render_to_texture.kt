@@ -63,13 +63,13 @@ fun main(args:Array<String>) {
 
     println("Finished")
 }
-private class RenderToTextureExample : VulkanClient(
+private class RenderToTextureExample : VulkanClient(Parameters(
     windowed                = true,
     width                   = 800,
     height                  = 800,
     windowTitle             = "Vulkan Render To Texture Example",
     enableVsync             = false,
-    prefNumSwapChainBuffers = 3)
+    prefNumSwapChainBuffers = 3))
 {
     private class FrameResource(
         val computeBuffer : VkCommandBuffer,
@@ -191,7 +191,7 @@ private class RenderToTextureExample : VulkanClient(
             .camera(camera)
 
         this.computeCP = device.createCommandPool(
-            vk.queues.getFamily(Queues.COMPUTE)
+            vk.queues.getFamily(Queues.COMPUTE), 0
         )
         this.transferCP = device.createCommandPool(
             vk.queues.getFamily(Queues.TRANSFER),

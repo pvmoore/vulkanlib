@@ -51,7 +51,7 @@ fun main(args:Array<String>) {
     println("Finished")
 }
 //=========================================================================================
-private class ComputeFP16Benchmark : VulkanClient(headless = true) {
+private class ComputeFP16Benchmark : VulkanClient(Parameters(headless = true)) {
 
     private lateinit var vk: VulkanApplication
     private lateinit var device: VkDevice
@@ -147,7 +147,7 @@ private class ComputeFP16Benchmark : VulkanClient(headless = true) {
 
         this.queryPool = device.createQueryPool(VK_QUERY_TYPE_TIMESTAMP, 2)
 
-        computeCP = device.createCommandPool(vk.queues.getFamily(Queues.COMPUTE)).apply {
+        computeCP = device.createCommandPool(vk.queues.getFamily(Queues.COMPUTE), 0).apply {
             computeCB = this.alloc()
 
             computeCB!!.run {

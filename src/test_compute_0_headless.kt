@@ -45,7 +45,7 @@ fun main(args:Array<String>) {
     println("Finished")
 }
 //=========================================================================================
-private class HeadlessCompute : VulkanClient(headless = true) {
+private class HeadlessCompute : VulkanClient(Parameters(headless = true)) {
 
     private lateinit var vk: VulkanApplication
     private lateinit var device: VkDevice

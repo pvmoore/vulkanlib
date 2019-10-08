@@ -98,7 +98,7 @@ class VulkanApplication(val client: VulkanClient) {
 
         queues.deviceCreated(device)
 
-        if(!client.headless) {
+        if(!client.params.headless) {
             graphics.init(this)
         }
 
