@@ -1,4 +1,5 @@
 
+import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.lwjgl.glfw.GLFW
 import org.lwjgl.vulkan.VK10.VK_FORMAT_D32_SFLOAT
@@ -13,6 +14,7 @@ import vulkan.d2.FPS
 import vulkan.d3.Camera3D
 import vulkan.d3.Model3D
 import vulkan.maths.plusAssign
+import vulkan.maths.string
 import vulkan.misc.RGBA
 import vulkan.misc.VkFormat
 import vulkan.misc.megabytes
@@ -52,7 +54,7 @@ fun main(args:Array<String>) {
 }
 private class Graphics3DApplication : VulkanClient(Parameters(
     windowed                = true,
-    width                   = 800,
+    width                   = 1400,
     height                  = 800,
     windowTitle             = "Vulkan 3D Graphics Test",
     enableVsync             = false,
@@ -145,8 +147,34 @@ private class Graphics3DApplication : VulkanClient(Parameters(
 
         vk.graphics.drainWindowEvents().forEach {
             when(it) {
-                is KeyEvent        -> {
-                    if(it.key == GLFW.GLFW_KEY_ESCAPE) vk.graphics.postCloseMessage()
+                is KeyEvent -> {
+                    when(it.key) {
+                        GLFW.GLFW_KEY_ESCAPE -> vk.graphics.postCloseMessage()
+                        GLFW.GLFW_KEY_LEFT -> {
+                            camera3d.movePositionRelative(Vector3f(-1000f * frame.perSecond.toFloat(), 0f, 0f))
+                            cameraMoved = true
+                        }
+                        GLFW.GLFW_KEY_RIGHT -> {
+                            camera3d.movePositionRelative(Vector3f(1000f * frame.perSecond.toFloat(), 0f, 0f))
+                            cameraMoved = true
+                        }
+                        GLFW.GLFW_KEY_UP -> {
+                            camera3d.movePositionRelative(Vector3f(0f, 1000f * frame.perSecond.toFloat(), 0f))
+                            cameraMoved = true
+                        }
+                        GLFW.GLFW_KEY_DOWN -> {
+                            camera3d.movePositionRelative(Vector3f(0f, -1000f * frame.perSecond.toFloat(), 0f))
+                            cameraMoved = true
+                        }
+                        GLFW.GLFW_KEY_A-> {
+                            camera3d.movePositionRelative(Vector3f(0f, 0f, 1000f * frame.perSecond.toFloat()))
+                            cameraMoved = true
+                        }
+                        GLFW.GLFW_KEY_Z-> {
+                            camera3d.movePositionRelative(Vector3f(0f, 0f, -1000f * frame.perSecond.toFloat()))
+                            cameraMoved = true
+                        }
+                    }
                 }
                 is MouseDragStart  -> {
 //                    println("Start drag: ${it.pos.string()} button:${it.button}")
@@ -189,6 +217,18 @@ private class Graphics3DApplication : VulkanClient(Parameters(
             fovNearFar(Math.toRadians(70.0).toFloat(), 0.01f, 1000.0f)
             resizeWindow(vk.graphics.windowSize)
             log.debug("camera3d = $this")
+            log.debug("fov,near,far = ${this.fov}, ${this.near}, ${this.far}")
+
+            var v = Matrix4f()
+            var p = Matrix4f()
+            var vp = Matrix4f()
+            this.V(v)
+            this.P(p)
+            this.VP(vp)
+
+            log.debug("V = \n${v.string()}")
+            log.debug("P = \n${p.string()}")
+            log.debug("VP = \n${vp.string()}")
         }
 
         memory.init(vk)

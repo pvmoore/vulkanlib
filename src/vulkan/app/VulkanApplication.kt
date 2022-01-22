@@ -74,8 +74,10 @@ class VulkanApplication(val client: VulkanClient) {
 
         val layers = ArrayList<String>()
         if(DEBUG) {
-            layers.add("VK_LAYER_LUNARG_standard_validation")
-            layers.add("VK_LAYER_LUNARG_assistant_layer")
+            //layers.add("VK_LAYER_LUNARG_standard_validation")
+            layers.add("VK_LAYER_KHRONOS_validation")
+            //layers.add("VK_LAYER_LUNARG_vktrace")
+            layers.add("VK_LAYER_LUNARG_monitor")
         }
 
         instance = createInstance(layers)

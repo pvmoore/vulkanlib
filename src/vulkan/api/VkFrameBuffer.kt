@@ -9,6 +9,7 @@ import org.lwjgl.vulkan.VkFramebufferCreateInfo
 import vulkan.api.image.VkImageView
 import vulkan.api.image.put
 import vulkan.misc.check
+import java.util.*
 
 class VkFrameBuffer(private val device: VkDevice, val handle:Long) {
 
@@ -23,16 +24,16 @@ fun VkDevice.createFrameBuffer(imageViews: Array<VkImageView>,
     :VkFrameBuffer
 {
 
-    val pAttachments =
-        memAllocLong(imageViews.size)
+    val pAttachments = memAllocLong(imageViews.size)
             .put(imageViews)
             .flip()
+
 
     val info = VkFramebufferCreateInfo.calloc()
         .sType(VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO)
         .pAttachments(pAttachments)
-        .height(extent.x)
-        .width(extent.y)
+        .width(extent.x)
+        .height(extent.y)
         .layers(1)
         .renderPass(renderPass.handle)
 

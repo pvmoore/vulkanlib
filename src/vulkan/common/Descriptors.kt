@@ -166,6 +166,7 @@ class Descriptors {
                         .dstBinding(i)
                         .dstSet(set.handle)
                         .descriptorType(binding.type)
+                        .descriptorCount(1)
                         .dstArrayElement(0)
 
                     when(d) {
@@ -213,6 +214,7 @@ class Descriptors {
 
         pool = context.device.createDescriptorPool(types.size) { info, sizes ->
             info.maxSets(maxSets)
+
 
             types.entries.forEachIndexed { i, e->
                 sizes[i].type(e.key)

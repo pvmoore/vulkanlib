@@ -74,7 +74,7 @@ fun VkDevice.createDescriptorPool(numSizes:Int,
             .sType(VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO)
             .pPoolSizes(sizes)
             .maxSets(0)
-            .flags(0)
+            .flags(VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT)
 
         /** Allow client to set values */
         callback(info, sizes)

@@ -16,6 +16,27 @@ import vulkan.misc.sizeof
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
+/**
+ * Shader printf functionality.
+ *
+ * Requires:
+ *      4 megabytes + 16 of STAGING_DOWNLOAD buffer
+ *      4 megabytes + 16 of STORAGE buffer
+ *
+ * Usage:
+ *      shaderPrintf.init(context);
+ *      shaderPrintf.createLayout(descriptors, shaderStage);
+ *      shaderPrintf.createDescriptorSet(descriptors, layoutNumber);
+ *
+ * Within the CommandBuffer:
+ *      shaderPrintf.bindDescriptorSet(VkCommandBuffer, pipeline, 1)
+ *      shaderPrintf.clearBuffers(VkCommandBuffer)
+ *
+ *      // dispatch here
+ *
+ *      shaderPrintf.fetchBuffers(VkCommandBuffer)
+ *
+ */
 class ShaderPrintf {
     companion object {
         const val BUFFER_SIZE = 4 * 1024 * 1024

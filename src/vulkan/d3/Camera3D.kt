@@ -47,6 +47,8 @@ class Camera3D(val windowSize: Vector2i = Vector2i()) {
         } else {
             this.up.set(forward.rotatedTo(Vector3f(0f,1f,0f), Math.toRadians(90.0)))
         }
+        this.recalculateView = true
+        this.recalculateProj = true
     }
     fun setOrientation(forward:Vector3f, up:Vector3f) {
         this.forward.set(forward).normalize()

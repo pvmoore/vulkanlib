@@ -42,8 +42,8 @@ class SwapChain(private val vk: VulkanApplication,
     val frameBuffers = ArrayList<VkFrameBuffer>()
     var numImages    = 0
 
-    var depthImageMem = null as VkDeviceMemory?
-    var depthImage    = null as VkImage?
+    private var depthImageMem = null as VkDeviceMemory?
+    private var depthImage    = null as VkImage?
 
     init{
         log.info("Initialising SwapChain ...")
